@@ -1,19 +1,30 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Camera, MapPin, Instagram } from 'lucide-react';
 import { ImageItem } from '@/types';
+import { VIBE_TAGS } from '@/constants';
 
 interface MetadataUploadModalProps {
-  files: File[];
+  files?: File[];
+  imageUrls?: string[]; // For editing existing
+  initialData?: Partial<ImageItem>; 
   onConfirm: (metadata: Partial<ImageItem>) => void;
   onCancel: () => void;
 }
 
-export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({ files, onConfirm, onCancel }) => {
-  const [vibe, setVibe] = useState('');
-  const [photographer, setPhotographer] = useState('');
-  const [photographerUrl, setPhotographerUrl] = useState('');
-  const [studio, setStudio] = useState('');
-  const [studioUrl, setStudioUrl] = useState('');
+export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({ 
+  files = [], 
+  imageUrls = [], 
+  initialData = {}, 
+  onConfirm, 
+  onCancel 
+}) => {
+  const [vibe, setVibe] = useState(initialData.vibe || '');
+  const [photographer, setPhotographer] = useState(initialData.photographer || '');
+  const [photographerUrl, setPhotographerUrl] = useState(initialData.photographerUrl || '');
+  const [studio, setStudio] = useState(initialData.studio || '');
+  const [studioUrl, setStudioUrl] = useState(initialData.studioUrl || '');
+
+  const count = files.length + imageUrls.length;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,9 +42,11 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({ files,
       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8">
         <div className="p-8 border-b border-zinc-50 flex justify-between items-center">
            <div>
-             <h3 className="font-serif text-2xl">Add Credits</h3>
+             <h3 className="font-serif text-2xl">
+               {files.length > 0 ? 'Add Credits' : 'Edit Credits'}
+             </h3>
              <p className="text-xs text-zinc-400 uppercase tracking-widest mt-1">
-                Applying to {files.length} selected {files.length === 1 ? 'image' : 'images'}
+                Applying to {count} selected {count === 1 ? 'image' : 'images'}
              </p>
            </div>
            <button onClick={onCancel} className="p-2 hover:bg-zinc-100 rounded-full transition-colors"><X size={20} /></button>
@@ -43,29 +56,53 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({ files,
            {/* Thumbnails Preview */}
            <div className="flex -space-x-4 overflow-hidden py-2">
               {files.slice(0, 5).map((f, i) => (
-                 <div key={i} className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-zinc-100 overflow-hidden relative">
+                 <div key={`file-${i}`} className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-zinc-100 overflow-hidden relative">
                     <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" />
                  </div>
               ))}
-              {files.length > 5 && (
+              {imageUrls.slice(0, 5).map((url, i) => (
+                 <div key={`url-${i}`} className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-zinc-100 overflow-hidden relative">
+                    <img src={url} className="w-full h-full object-cover" />
+                 </div>
+              ))}
+              
+              {count > 5 && (
                  <div className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-zinc-900 flex items-center justify-center text-white text-[10px] font-bold">
-                    +{files.length - 5}
+                    +{count - 5}
                  </div>
               )}
            </div>
 
-           {/* Vibe */}
-           <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                 <Sparkles size={12} /> Vibe / Tag
-              </label>
-              <input 
-                 value={vibe}
-                 onChange={(e) => setVibe(e.target.value)}
-                 className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                 placeholder="e.g. Editorial, Noir, Vintage..."
-              />
-           </div>
+            {/* Vibe */}
+            <div className="space-y-3">
+               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                  <Sparkles size={12} /> Vibe / Tag
+               </label>
+               <div className="flex flex-wrap gap-2">
+                  {VIBE_TAGS.map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setVibe(tag)}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
+                        vibe === tag
+                          ? 'bg-black text-white border-black'
+                          : 'bg-white text-zinc-400 border-zinc-200 hover:border-black hover:text-black'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+               </div>
+
+               {/* Custom Vibe Input (optional fallback) */}
+               {!VIBE_TAGS.includes(vibe) && vibe !== '' && (
+                  <div className="text-xs text-zinc-400 mt-2 italic">
+                     Custom: {vibe}
+                     <button type="button" onClick={() => setVibe('')} className="ml-2 text-red-500 underline decoration-red-500/30">Clear</button>
+                  </div>
+               )}
+            </div>
 
            {/* Photographer */}
            <div className="space-y-2">
@@ -120,7 +157,7 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({ files,
                  type="submit"
                  className="w-full bg-black text-white font-bold uppercase tracking-widest py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl"
               >
-                 Upload & Save Credits
+                 {files.length > 0 ? 'Upload & Save Credits' : 'Update Credits'}
               </button>
            </div>
         </form>

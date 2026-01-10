@@ -6,3 +6,16 @@ export const AESTHETICS: Aesthetic[] = [
   { id: 'street', label: 'Streetwear', desc: 'Urban and edgy.', colors: ['#121212', '#FF4D00', '#E5E7EB', '#374151'], img: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=400' },
   { id: 'minimalist', label: 'Minimalist', desc: 'Clean lines and simplicity.', colors: ['#FAF9F6', '#D2B48C', '#1A1A1A', '#E7E5E4'], img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=400' },
 ];
+
+export const VIBE_TAGS = [
+  'Editorial', 
+  'Commercial', 
+  'Bridal', 
+  'Swim', 
+  'Active Wear', 
+  'Lifestyle', 
+  'High Fashion', 
+  'Beauty', 
+  'Portrait', 
+  'Runway'
+];
