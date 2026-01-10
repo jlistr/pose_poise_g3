@@ -66,16 +66,6 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
   return (
     <div className="w-full flex-1 flex flex-col min-h-screen">
       
-      {/* Header */}
-      <div className="text-center mb-16 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-         <h1 className="text-6xl md:text-9xl font-serif tracking-tighter uppercase">{displayName}</h1>
-         {displayInsta && (
-            <a href={`https://instagram.com/${displayInsta.replace('@', '')}`} target="_blank" rel="noreferrer" className="inline-block text-sm font-bold uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
-               {displayInsta.startsWith('@') ? displayInsta : `@${displayInsta}`}
-            </a>
-         )}
-      </div>
-
       {/* Hero Section */}
       {settings.showHero && heroImage && (
         <div className="mb-20 animate-in fade-in duration-700 w-full">
@@ -92,6 +82,16 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
            </div>
         </div>
       )}
+
+      {/* Header */}
+      <div className="text-center mb-16 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+         <h1 className="text-6xl md:text-9xl font-serif tracking-tighter uppercase">{displayName}</h1>
+         {displayInsta && (
+            <a href={`https://instagram.com/${displayInsta.replace('@', '')}`} target="_blank" rel="noreferrer" className="inline-block text-sm font-bold uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
+               {displayInsta.startsWith('@') ? displayInsta : `@${displayInsta}`}
+            </a>
+         )}
+      </div>
 
       {/* Content Rendering */}
       <div className="space-y-24 flex-1 pb-24">
