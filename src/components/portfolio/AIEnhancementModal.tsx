@@ -1,6 +1,5 @@
-```
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Wand2, Check, RefreshCw, AlertCircle, Search, Square } from 'lucide-react';
+import { X, Sparkles, Wand2, Check, RefreshCw, AlertCircle, Search, Square, Quote, ArrowUpCircle, CheckCircle2 } from 'lucide-react';
 import { Shoot, Profile } from '@/types';
 import { PortfolioSettings } from './PortfolioRenderer';
 

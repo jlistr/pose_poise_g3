@@ -12,9 +12,11 @@ interface ProfileModalProps {
   libraryImages?: ImageItem[];
   onSave: (profile: Profile) => Promise<void> | void;
   onClose: () => void;
+  settings?: any;
+  onUpdateSettings?: (settings: any) => Promise<void>;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ initialProfile, uid, token, libraryImages = [], onSave, onClose }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ initialProfile, uid, token, libraryImages = [], onSave, onClose, settings, onUpdateSettings }) => {
   const [profile, setProfile] = useState<Profile>(initialProfile);
   const [isGenerating, setIsGenerating] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -245,7 +247,29 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ initialProfile, uid,
                       />
                   </div>
                </div>
-           </div>
+            </div>
+            
+            {/* Dashboard Experience */}
+            <div className="space-y-4">
+               <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
+                  <Sparkles size={12} /> Dashboard Experience
+               </h4>
+               <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-zinc-700">Photoshoot Timeline</p>
+                    <p className="text-xs text-zinc-500 max-w-sm mt-1">
+                      Display a timeline of your past photoshoot events, creating a visual about your modeling and photoshoot experiences.
+                    </p>
+                  </div>
+                  <button 
+                     type="button"
+                     onClick={() => onUpdateSettings?.({ ...settings, showTimeline: settings?.showTimeline === false })}
+                     className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ml-4 ${settings?.showTimeline !== false ? 'bg-black' : 'bg-zinc-200'}`}
+                  >
+                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings?.showTimeline !== false ? 'right-1' : 'left-1'}`} />
+                  </button>
+               </div>
+            </div>
 
            {/* Social Integrations */}
            {uid && <SocialIntegrations uid={uid} />}

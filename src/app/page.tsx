@@ -361,6 +361,10 @@ export default function Home() {
        
        toast.success("Portfolio curated successfully!");
        setIsAIModalOpen(false); // Close AI after success
+       
+       // Navigation Fix: Go straight to Portfolio Editor
+       setMode('portfolio');
+       setStep(7);
     } catch (err) {
        console.error("Curation application failed", err);
        toast.error("Failed to apply curation.");
@@ -1545,6 +1549,8 @@ export default function Home() {
                 await saveProfile(p);
               }} 
               onClose={() => setIsProfileOpen(false)}
+              settings={portfolioSettings}
+              onUpdateSettings={handlePortfolioUpdate}
            />
       )}
 
@@ -1566,6 +1572,8 @@ export default function Home() {
         onResetPortfolio={handleResetPortfolio}
         onClearCompCards={handleResetCompCards}
         onClearLibrary={handleClearLibrary}
+        settings={portfolioSettings}
+        onUpdateSettings={handlePortfolioUpdate}
         onSyncLibrary={async () => {
              if (!user) return;
              try {
@@ -1578,7 +1586,7 @@ export default function Home() {
 
                  for (const blob of blobs) {
                      if (!existingUrls.has(blob.url)) {
-                         await upsertImage(dataConnect, {
+                         await upsertImage({
                              id: crypto.randomUUID(),
                              uid: user.id,
                              url: blob.url,

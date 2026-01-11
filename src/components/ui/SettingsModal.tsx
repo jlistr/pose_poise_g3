@@ -8,9 +8,20 @@ interface SettingsModalProps {
   onClearCompCards: () => Promise<void>;
   onClearLibrary: () => Promise<void>;
   onSyncLibrary: () => Promise<void>;
+  settings?: any;
+  onUpdateSettings?: (settings: any) => Promise<void>;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onResetPortfolio, onClearCompCards, onClearLibrary, onSyncLibrary }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onResetPortfolio, 
+  onClearCompCards, 
+  onClearLibrary, 
+  onSyncLibrary,
+  settings,
+  onUpdateSettings
+}) => {
   const [activeTab, setActiveTab] = useState<'general' | 'privacy' | 'data'>('general');
   const [confirmInput, setConfirmInput] = useState('');
   const [actionToConfirm, setActionToConfirm] = useState<'reset_portfolio' | 'clear_cards' | 'clear_library' | null>(null);
@@ -88,13 +99,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
            {/* Content */}
            <div className="flex-1 p-8 overflow-y-auto">
-              
-              {activeTab === 'general' && (
-                 <div className="space-y-6">
-                    <h3 className="text-lg font-bold">General Preferences</h3>
-                    <p className="text-sm text-zinc-500">General settings functionality coming soon.</p>
-                 </div>
-              )}
+                            {activeTab === 'general' && (
+                  <div className="space-y-8">
+                     <div className="space-y-4">
+                        <h3 className="text-lg font-bold">Dashboard Preferences</h3>
+                        <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                           <div className="space-y-1">
+                              <p className="text-sm font-bold">Vertical Timeline</p>
+                              <p className="text-xs text-zinc-500">Show photoshoot journey on the dashboard sidebar.</p>
+                           </div>
+                           <button 
+                             onClick={() => onUpdateSettings?.({ ...settings, showTimeline: settings?.showTimeline === false })}
+                             className={`w-12 h-6 rounded-full transition-colors relative ${settings?.showTimeline !== false ? 'bg-black' : 'bg-zinc-200'}`}
+                           >
+                              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings?.showTimeline !== false ? 'right-1' : 'left-1'}`} />
+                           </button>
+                        </div>
+                     </div>
+
+                     <div className="h-px bg-zinc-100" />
+
+                     <div className="space-y-4">
+                        <h3 className="text-lg font-bold">General Preferences</h3>
+                        <p className="text-sm text-zinc-500">More customization options coming soon.</p>
+                     </div>
+                  </div>
+               )}
 
               {activeTab === 'privacy' && (
                  <div className="space-y-6">

@@ -286,8 +286,8 @@ export const Landing: React.FC<LandingProps> = ({
         </div>
       </header>
 
-      {/* Main Layout Grid with Sidebar */}
-      <div className="flex flex-col lg:flex-row gap-16 max-w-6xl mx-auto px-4 relative z-10">
+       {/* Main Layout Grid with Sidebar */}
+      <div className={`flex flex-col lg:flex-row gap-16 mx-auto px-4 relative z-10 ${portfolioSettings?.showTimeline === false ? 'max-w-4xl' : 'max-w-6xl'}`}>
         <div className="flex-1 space-y-12">
           {/* Main Actions / Dashboard */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -399,10 +399,12 @@ export const Landing: React.FC<LandingProps> = ({
             )}
          </div>
         </div>
-
-        {/* Inspirational Timeline Sidebar */}
-        <InspirationalTimeline shoots={shoots} />
-      </div>
+ 
+         {/* Inspirational Timeline Sidebar */}
+         {portfolioSettings?.showTimeline !== false && (
+            <InspirationalTimeline shoots={shoots} />
+         )}
+       </div>
       </div>
 
       <div className="space-y-12 pt-12 border-t border-zinc-50">

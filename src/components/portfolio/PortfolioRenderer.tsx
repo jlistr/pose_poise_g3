@@ -15,6 +15,7 @@ export interface PortfolioSettings {
   bioStyle?: 'standard' | 'editorial' | 'split' | 'sticky';
   heroImageUrl?: string;
   highlightedImageUrls?: string[];
+  showTimeline?: boolean; // Added for dashboard preference
 }
 
 interface PortfolioRendererProps {
@@ -88,20 +89,22 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
     }
   };
 
-  const renderMetadataOverlay = (shoot: Shoot, isHero: boolean = false) => (
-    <div className={`absolute inset-0 bg-black/60 transition-all duration-300 flex flex-col justify-between p-6 ${activeOverlayUrl === (isHero ? 'hero' : shoot.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-       <div className="space-y-4 transform -translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-          <div className="space-y-1">
-             <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 block">TAGS</span>
-             <div className="flex flex-wrap gap-1">
-                {shoot.vibes && shoot.vibes.map(v => (
-                   <span key={v} className="inline-block px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[8px] font-bold uppercase tracking-widest text-white border border-white/10">
-                     {v}
-                   </span>
-                ))}
-             </div>
-          </div>
-       </div>
+  const renderMetadataOverlay = (shoot?: Shoot, isHero: boolean = false) => {
+    if (!shoot) return null;
+    return (
+      <div className={`absolute inset-0 bg-black/60 transition-all duration-300 flex flex-col justify-between p-6 ${activeOverlayUrl === (isHero ? 'hero' : shoot.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+         <div className="space-y-4 transform -translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+            <div className="space-y-1">
+               <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 block">TAGS</span>
+               <div className="flex flex-wrap gap-1">
+                  {shoot.vibes?.map(v => (
+                     <span key={v} className="inline-block px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[8px] font-bold uppercase tracking-widest text-white border border-white/10">
+                       {v}
+                     </span>
+                  ))}
+               </div>
+            </div>
+         </div>
 
        {/* Center Eye Icon */}
        {!isHero && (
@@ -111,7 +114,6 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
             </div>
          </div>
        )}
-
        <div className="space-y-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
           {(shoot.photographer || shoot.studio) && (
              <div className="space-y-1">
@@ -124,7 +126,8 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
           )}
        </div>
     </div>
-  );
+    );
+  };
 
 
   // Determine Hero Image
@@ -145,14 +148,14 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
                  relative w-full overflow-hidden group cursor-pointer shadow-sm
                  ${settings.heroStyle === 'full' ? 'h-full rounded-none' : 'aspect-[21/9] rounded-sm'}
                `} 
-               onClick={() => openLightbox(heroImage)}
+               onClick={() => heroImage && openLightbox(heroImage)}
                onTouchStart={() => handleTouchStart('hero')}
                onTouchEnd={handleTouchEnd}
                onContextMenu={(e) => e.preventDefault()}
                onMouseLeave={() => setActiveOverlayUrl(null)}
              >
                 <img 
-                  src={heroImage} 
+                  src={heroImage || undefined} 
                   className={`
                     w-full h-full object-cover transition-transform
                     ${settings.heroAnimation === 'zoom' ? 'scale-105 duration-[10s] animate-ken-burns' : 'duration-[2s] group-hover:scale-105'}
@@ -176,9 +179,8 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
                    </div>
                 </div>
 
-                {renderMetadataOverlay(shoots[0], true)}
-                {renderMetadataOverlay(shoots[0], true)}
-             </div>
+                 {shoots[0] && renderMetadataOverlay(shoots[0], true)}
+              </div>
 
              {/* Split Bio Side (Only for split + full hero) */}
              {settings.bioStyle === 'split' && settings.heroStyle === 'full' && (
@@ -186,10 +188,10 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
                      <h1 className="text-6xl md:text-8xl font-serif tracking-tighter uppercase mb-8">{displayName}</h1>
                      <div className="h-px w-24 bg-zinc-200 mb-8" />
                      {profile?.description && (
-                        <p className="font-serif italic text-xl md:text-2xl text-zinc-600 leading-relaxed max-w-lg">
-                            "{profile.description}"
-                        </p>
-                     )}
+                         <p className="font-serif italic text-xl md:text-2xl text-zinc-600 leading-relaxed max-w-lg">
+                             "{profile?.description}"
+                         </p>
+                      )}
                  </div>
              )}
           </div>
@@ -203,11 +205,11 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
         {/* Header */}
         <div className="text-center mb-16 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
            <h1 className="text-6xl md:text-9xl font-serif tracking-tighter uppercase">{displayName}</h1>
-           {displayInsta && (
-              <a href={`https://instagram.com/${displayInsta.replace('@', '')}`} target="_blank" rel="noreferrer" className="inline-block text-sm font-bold uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
-                 {displayInsta.startsWith('@') ? displayInsta : `@${displayInsta}`}
-              </a>
-           )}
+            {displayInsta && (
+               <a href={`https://instagram.com/${displayInsta?.replace('@', '')}`} target="_blank" rel="noreferrer" className="inline-block text-sm font-bold uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
+                  {displayInsta?.startsWith('@') ? displayInsta : `@${displayInsta}`}
+               </a>
+            )}
         </div>
 
         {/* Professional Bio Section (Standard Style Only) */}
@@ -215,7 +217,7 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
           <div className="max-w-2xl mx-auto mb-20 text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-1000 delay-300">
              <div className="h-px w-12 bg-zinc-200 mx-auto" />
              <p className="font-serif italic text-xl md:text-2xl text-zinc-600 leading-relaxed px-4">
-                "{profile.description}"
+                "{profile?.description}"
              </p>
              <div className="h-px w-12 bg-zinc-200 mx-auto" />
           </div>
@@ -232,15 +234,15 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
                   <h2 className="text-4xl md:text-6xl font-serif tracking-tighter uppercase">{displayName}</h2>
                   <div className="w-12 h-px bg-black" />
                   {profile?.description && (
-                      <p className="font-serif italic text-lg leading-relaxed text-zinc-600">
-                          {profile.description}
-                      </p>
+                       <p className="font-serif italic text-lg leading-relaxed text-zinc-600">
+                           {profile?.description}
+                       </p>
                   )}
-                  {displayInsta && (
-                      <a href={`https://instagram.com/${displayInsta.replace('@', '')}`} target="_blank" rel="noreferrer" className="inline-block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-black transition-colors border-b border-transparent hover:border-black">
+                   {displayInsta && (
+                      <a href={`https://instagram.com/${displayInsta?.replace('@', '')}`} target="_blank" rel="noreferrer" className="inline-block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-black transition-colors border-b border-transparent hover:border-black">
                           Follow on Instagram
                       </a>
-                  )}
+                   )}
               </div>
           )}
 
