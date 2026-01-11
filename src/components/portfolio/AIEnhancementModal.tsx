@@ -15,6 +15,7 @@ interface AIEnhancementModalProps {
 
 interface AIAnalysis {
   summary: string;
+  theme?: string; // New Theme Field
   imageQuality: {
     status: 'excellent' | 'good' | 'needs_work';
     details: string;
@@ -116,8 +117,8 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({ isOpen, 
                  <Sparkles size={20} />
               </div>
               <div>
-                 <h2 className="text-xl font-serif">Google AI Enhancement</h2>
-                 <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Gemini 3 Nano Banana Pro</p>
+                 <h2 className="text-xl font-serif">Google AI Curator</h2>
+                 <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Gemini Pro Vision</p>
               </div>
            </div>
            <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
@@ -132,7 +133,7 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({ isOpen, 
                 <Loader2 size={40} className="text-indigo-500 animate-spin" />
                 <div className="space-y-2">
                    <p className="text-lg font-serif italic text-zinc-600">Curating the perfect vision...</p>
-                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-300">Analyzing ${shoots.length} Collections</p>
+                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-300">Analyzing {shoots.length} Collections</p>
                 </div>
              </div>
            ) : error ? (
@@ -149,6 +150,12 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({ isOpen, 
                       <Sparkles size={80} />
                    </div>
                    <div className="relative z-10 space-y-4">
+                      {analysis.theme && (
+                        <div className="inline-block px-3 py-1 bg-white/10 rounded-full border border-white/20 backdrop-blur-sm">
+                           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-200">Curated Theme: {analysis.theme}</span>
+                        </div>
+                      )}
+                      
                       <div className="flex items-center space-x-2 text-indigo-300">
                          <Quote size={20} />
                          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">The Insight</span>

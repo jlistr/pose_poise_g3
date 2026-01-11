@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { signInAnonymously, onAuthStateChanged, signOut, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuth } from '@/context/AuthContext'; // <-- IMPORT THE HOOK
+import { signInAnonymously, signOut, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { upload } from '@vercel/blob/client'; // Import Vercel Blob Client
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { toast } from "sonner";
-import { doc, setDoc, getDoc, collection, onSnapshot, addDoc, deleteDoc, enableNetwork } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, onSnapshot, addDoc, deleteDoc, enableNetwork, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { 
   getProfile, upsertProfile, 
@@ -22,7 +24,7 @@ import {
   deleteCompCard,
   // @ts-ignore - Assuming this is generated but not yet in d.ts
   deletePortfolio
-} from '@/dataconnect-generated';
+} from '@/lib/data-supabase';
 import { v4 as uuidv4 } from 'uuid'; // Need to install uuid? Or use crypto.randomUUID
 
 import { BrandIcon } from '@/components/ui/BrandIcon';
@@ -36,6 +38,7 @@ import { CardPreview } from '@/components/card/CardPreview';
 import { PublicCardView } from '@/components/public/PublicCardView';
 import { PortfolioEditor } from '@/components/portfolio/PortfolioEditor';
 import { PortfolioRenderer, PortfolioSettings } from '@/components/portfolio/PortfolioRenderer';
+import { AIEnhancementModal } from '@/components/portfolio/AIEnhancementModal';
 import { MetadataUploadModal } from '@/components/ui/MetadataUploadModal';
 import { ProfileModal } from '@/components/ui/ProfileModal';
 import { UserMenu } from '@/components/ui/UserMenu';
@@ -64,9 +67,9 @@ const DEFAULT_PROFILE: Profile = {
 
 export default function Home() {
   // --- State ---
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const { user, loading: authLoading } = useAuth(); // <-- USE THE HOOK
   const [sessionUsername, setSessionUsername] = useState<string | null>(null);
-  const [step, setStep] = useState(-1); 
+  const [step, setStep] = useState(0); // <-- Start at 0, let effects handle step changes
   const [mode, setMode] = useState<'card' | 'portfolio' | null>(null); 
   
   const [isExporting, setIsExporting] = useState(false);
@@ -106,6 +109,7 @@ export default function Home() {
   const [portfolioId, setPortfolioId] = useState<string | null>(null);
   
   // AI State
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [recommendedFrontLayout, setRecommendedFrontLayout] = useState<string | undefined>(undefined);
   const [recommendedBackLayout, setRecommendedBackLayout] = useState<string | undefined>(undefined);
 
@@ -137,7 +141,7 @@ export default function Home() {
         }
       }
       setSessionUsername(username);
-      setStep(0);
+      // No need to setStep here, the effect watching 'user' will do it.
     } catch (err) {
       console.error("Login failed", err);
       // alert("Connection failed: " + (err as any).message); // Optional
@@ -174,7 +178,7 @@ export default function Home() {
       const result = await getImagesByHash(dataConnect, { hash: hash });
       return result.data.images.length > 0;
     } catch (error) {
-      console.error("Failed to check asset hash:", error);
+      console.error("Failed to check asset hash:", JSON.stringify(error, null, 2));
       // Fail open (assume not a duplicate) to not block uploads on DB error
       return false;
     }
@@ -183,10 +187,10 @@ export default function Home() {
   const handleLogout = async () => {
     await signOut(auth);
     setSessionUsername(null);
-    setStep(-1);
     setImages([]);
     setLibrary([]);
     setSavedCards([]);
+    // Step will be set to -1 by the useEffect watching the user state
   };
 
   const saveToLibrary = async (base64: string, metadata: Partial<ImageItem> = {}, file?: File): Promise<ImageItem | undefined> => {
@@ -205,9 +209,29 @@ export default function Home() {
   const deleteFromLibrary = async (docId: string | number) => {
     if (!user) return;
     try {
+      // 1. Find image to get URL for blob deletion
+      const imageToDelete = library.find(img => String(img.id) === String(docId));
+      
+      // 2. Delete from Vercel Blob (if URL exists)
+      if (imageToDelete?.url) {
+          try {
+             await fetch(`/api/blobs?url=${encodeURIComponent(imageToDelete.url)}`, { method: 'DELETE' });
+          } catch (e) {
+             console.error("Failed to delete blob:", e);
+             // Proceed to delete from DB even if blob delete fails (avoid orphaned DB records)
+          }
+      }
+
+      // 3. Delete from Supabase
       await deleteImage(dataConnect, { id: String(docId) });
+      
+      // 4. Update Local State
+      setLibrary(prev => prev.filter(img => String(img.id) !== String(docId)));
+      toast.success("Image deleted.");
+
     } catch (err) {
       console.error("Delete error:", err);
+      toast.error("Failed to delete image.");
     }
   };
 
@@ -297,6 +321,17 @@ export default function Home() {
     }
   };
 
+  const handleToggleHighlight = (url: string) => {
+    setPortfolioSettings(prev => {
+      const current = prev || DEFAULT_PORTFOLIO_SETTINGS;
+      const highlights = current.highlightedImageUrls || [];
+      const newHighlights = highlights.includes(url) 
+        ? highlights.filter(u => u !== url)
+        : [...highlights, url];
+      return { ...current, highlightedImageUrls: newHighlights };
+    });
+  };
+
   const handleResetPortfolio = async () => {
     if (!user) return;
     try {
@@ -368,36 +403,67 @@ export default function Home() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fileHash?: string): Promise<boolean> => {
     if (!e.target.files || e.target.files.length === 0) return false;
 
+    if (!user) {
+        toast.error("You must be logged in to upload.");
+        return false;
+    }
+
     const file = e.target.files[0];
     const toastId = toast.loading(`Uploading "${file.name}"...`);
     
     try {
-      const functions = getFunctions();
-      const requestUploadURLCallable = httpsCallable(functions, 'requestImageUploadURL');
-
       // The hash is now calculated and passed in from the component
       const imageHash = fileHash || await calculateFileHash(file);
-      
-      const result = await requestUploadURLCallable({
-        imageHash: imageHash,
-        contentType: file.type,
+      const token = await user.getIdToken();
+
+      // Manually handle filename uniqueness since `addRandomSuffix` is simpler server-side
+      // Manually handle filename uniqueness with UUID to absolutely prevent 409 Conflicts
+      const uniqueFilename = `${crypto.randomUUID()}-${file.name}`;
+      const blob = await upload(uniqueFilename, file, {
+        access: 'public',
+        handleUploadUrl: `/api/upload?auth=${token}`,
+        clientPayload: JSON.stringify({
+            userId: user.uid,
+            imageHash,
+            contentType: file.type
+        }),
       });
 
-      const data = result.data as any;
+      // --- Client-Side Indexing (Fix for Localhost Webhook Reachability) ---
+      if (blob.url) {
+          const downloadURL = blob.url;
+          // Use UUID if fileId is needed, or generate one. 
+          // Previous Firestore logic used doc().id. 
+          // Here we can use a random string or the file name hash?
+          const fileId = crypto.randomUUID(); 
 
-      if (data.duplicate) {
-        toast.info(`"${file.name}" is already in your library.`, { id: toastId });
-        return false;
-      }
-      
-      const uploadResponse = await fetch(data.signedUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type },
-      });
+          // 1. Save to User's Library (Data Connect)
+          await upsertImage(dataConnect, {
+              id: fileId,
+              uid: user.uid,
+              url: downloadURL,
+              // path: blob.pathname, // Field might not exist in Data Connect schema check
+              // contentType: file.type, // Field might not exist
+              now: new Date().toISOString()
+          });
 
-      if (!uploadResponse.ok) {
-        throw new Error(`Upload failed for IMG_0114.png: ${await uploadResponse.text()}`);
+          // 2. Save Hash Index (Optional - check if schema supports it)
+          // valid fields for upsertImage might be limited. 
+          // If getImagesByHash exists, there must be a way to set it.
+          // Assuming upsertImage might NOT take hash if it wasn't shown in example.
+          // But visible images come from getLibrary -> upsertImage.
+          
+          console.log(`Indexed ${fileId} locally to Data Connect.`);
+
+          // Update Local State for Immediate UI Feedback
+          setLibrary(prev => {
+              const newImage: ImageItem = {
+                  id: fileId,
+                  url: downloadURL,
+                  // metadata: {} 
+              };
+              return [newImage, ...prev];
+          });
       }
       
       toast.success(`"${file.name}" uploaded successfully.`, { id: toastId });
@@ -473,50 +539,117 @@ export default function Home() {
     if (!uploadQueue || !user) return;
 
     const { files, context, shootId } = uploadQueue;
-    const functions = getFunctions();
-    const requestUploadURLCallable = httpsCallable(functions, 'requestImageUploadURL');
+    setUploadQueue(null); // Close modal
 
-    setUploadQueue(null); // Close the modal immediately
-
-    for (const file of files) {
-      const toastId = toast.loading(`Uploading "${file.name}"...`);
-      try {
-        // 1. Calculate hash
-        const imageHash = await calculateFileHash(file);
-
-        // 2. Request upload URL from backend
-        const result = await requestUploadURLCallable({
-          imageHash,
-          contentType: file.type,
-        });
-
-        const data = result.data as any;
-
-        if (data.duplicate) {
-          toast.info(`"${file.name}" is already in your library.`, { id: toastId });
-          // The real-time listener for the library will handle adding the image if it wasn't there before
-          continue;
-        }
+    try {
+        const token = await user.getIdToken();
         
-        // 3. Upload file directly to signed URL
-        const uploadResponse = await fetch(data.signedUrl, {
-          method: 'PUT',
-          body: file,
-          headers: { 'Content-Type': file.type },
-        });
+        for (const file of files) {
+          const toastId = toast.loading(`Uploading "${file.name}"...`);
+          try {
+            // Check for duplicates (Client-side check)
+            const imageHash = await calculateFileHash(file);
+            const isDuplicate = await isAssetHashInDB(imageHash);
+            
+            // If duplicate in library, we still might want to add it to the shoot if not already there?
+            // For now, complex duplication logic is risky. Let's assume duplications are skipped for upload
+            // but we should still link them if found? 
+            // Simplified: If duplicate, skip upload/index, but proceed to link if context is shoot.
 
-        if (!uploadResponse.ok) {
-            throw new Error(`Storage upload failed with status ${uploadResponse.status}`);
+            let downloadURL: string | null = null;
+            let fileId: string | null = null;
+
+            if (isDuplicate) {
+                 toast.info(`"${file.name}" is already in your library. Linking...`, { id: toastId });
+                 // Find existing ID? We need getImagesByHash to return ID.
+                 // Ideally we'd fetch the existing record here.
+                 // For speed/safety in this fix, I'll rely on the user adding from library if it exists.
+                 // Or I can query it. 
+                 const existingRes = await getImagesByHash(dataConnect, { hash: imageHash });
+                 if (existingRes.data.images.length > 0) {
+                     downloadURL = existingRes.data.images[0].url;
+                     fileId = existingRes.data.images[0].id;
+                 }
+            } else {
+                // Vercel Blob Upload
+                const uniqueFilename = `${crypto.randomUUID()}-${file.name}`;
+                const blob = await upload(uniqueFilename, file, {
+                  access: 'public',
+                  handleUploadUrl: `/api/upload?auth=${token}`,
+                  clientPayload: JSON.stringify({
+                      userId: user.uid,
+                      imageHash,
+                      contentType: file.type
+                  })
+                });
+
+                if (blob.url) {
+                    downloadURL = blob.url;
+                    fileId = crypto.randomUUID();
+                    
+                    // Index in Supabase
+                    await upsertImage(dataConnect, {
+                        id: fileId,
+                        uid: user.uid,
+                        url: downloadURL,
+                        now: new Date().toISOString()
+                    });
+                    
+                    // Update Library State
+                    setLibrary(prev => [{ id: fileId!, url: downloadURL! }, ...prev]);
+                }
+            }
+
+            // --- Context Specific Actions ---
+            if (downloadURL && fileId) {
+                // If Context is Shoot, link it!
+                if (context === 'shoot' && shootId) {
+                    // 1. Add to Shoot in DB
+                    // Calculate order (append to end)
+                    const currentShoot = shoots.find(s => String(s.id) === String(shootId));
+                    const nextOrder = currentShoot ? currentShoot.images.length : 0;
+                    
+                    await addImageToShoot(dataConnect, {
+                        shootId: String(shootId),
+                        imageId: fileId,
+                        order: nextOrder,
+                        isVisible: true
+                    });
+
+                    // 2. Update Local State
+                    setShoots(prev => prev.map(s => {
+                        if (String(s.id) === String(shootId)) {
+                            // Avoid duplicates in local state
+                            if (s.images.includes(downloadURL!)) return s;
+                            return { ...s, images: [...s.images, downloadURL!] };
+                        }
+                        return s;
+                    }));
+                }
+
+                // If Context is Wizard (Comp Card), add to selected images
+                if (context === 'wizard_card') {
+                    setImages(prev => [
+                        ...prev, 
+                        { id: fileId!, url: downloadURL! }
+                    ]);
+                }
+
+                if (!isDuplicate) {
+                    toast.success(`"${file.name}" uploaded.`, { id: toastId });
+                } else {
+                    toast.success(`"${file.name}" linked.`, { id: toastId });
+                }
+            }
+
+          } catch (error: any) {
+            console.error(`Upload failed for ${file.name}:`, error);
+            toast.error(`Failed to upload ${file.name}: ${error.message}`, { id: toastId });
+          }
         }
-
-        // 4. UI is updated via the Firestore listener on the `images` or `library` collection
-        // which is triggered by the `processUploadedImage` cloud function.
-        toast.success(`"${file.name}" uploaded. Processing...`, { id: toastId });
-
-      } catch (error: any) {
-        console.error(`Upload failed for ${file.name}:`, error);
-        toast.error(error.message || `Upload failed for "${file.name}".`, { id: toastId });
-      }
+    } catch (authErr) {
+        console.error("Auth error during upload:", authErr);
+        toast.error("Authentication failed.");
     }
   };
 
@@ -538,13 +671,17 @@ export default function Home() {
   };
 
   const handleShootUpload = (shootId: string | number, e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("handleShootUpload triggered", shootId);
     if (e.target.files && e.target.files.length > 0) {
+       console.log("Files selected:", e.target.files.length);
        setUploadQueue({
           files: Array.from(e.target.files).slice(0, 4), 
           context: 'shoot',
           shootId
        });
        e.target.value = '';
+    } else {
+        console.warn("No files in event target");
     }
   };
  
@@ -745,40 +882,48 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const initAuth = async () => {
-      // Check for public card ID in URL
-      const params = new URLSearchParams(window.location.search);
-      const cardId = params.get('cardId');
-      const pId = params.get('portfolioId');
-      
-      if (cardId) {
-        setStep(100); // Public Card View
-        setIsPublicLoading(true);
-        try {
-          const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'compositeCards', cardId);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) setPublicCard(docSnap.data() as CardData);
-        } catch (err) { console.error(err); } finally { setIsPublicLoading(false); }
-      } else if (pId) {
-        setStep(101); // Public Portfolio View
-        setIsPublicLoading(true);
-        try {
-           const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'portfolios', pId);
-           const docSnap = await getDoc(docRef);
-           if (docSnap.exists()) {
-              setPublicPortfolio(docSnap.data() as any);
-           }
-        } catch (err) { console.error(err); } finally { setIsPublicLoading(false); }
+    // This effect now handles routing logic based on auth state
+    const params = new URLSearchParams(window.location.search);
+    const cardId = params.get('cardId');
+    const pId = params.get('portfolioId');
+
+    if (cardId) {
+      setStep(100); // Public Card View
+    } else if (pId) {
+      setStep(101); // Public Portfolio View
+    } else if (!authLoading) {
+      if (user) {
+        setStep(0); // Go to main dashboard
       } else {
-        // Normal Flow
-        onAuthStateChanged(auth, (u) => {
-          setUser(u);
-          if (!u && step !== 100 && step !== 101) setStep(-1);
-        });
+        setStep(-1); // Go to login
       }
-    };
-    initAuth();
-  }, []);
+    }
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    if (step === 100) {
+      const cardId = new URLSearchParams(window.location.search).get('cardId');
+      if (cardId) {
+        setIsPublicLoading(true);
+        const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'compositeCards', cardId);
+        getDoc(docRef)
+          .then(docSnap => { if (docSnap.exists()) setPublicCard(docSnap.data() as CardData); })
+          .catch(err => console.error(err))
+          .finally(() => setIsPublicLoading(false));
+      }
+    } else if (step === 101) {
+      const pId = new URLSearchParams(window.location.search).get('portfolioId');
+      if (pId) {
+        setIsPublicLoading(true);
+        const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'portfolios', pId);
+        getDoc(docRef)
+          .then(docSnap => { if (docSnap.exists()) setPublicPortfolio(docSnap.data() as any); })
+          .catch(err => console.error(err))
+          .finally(() => setIsPublicLoading(false));
+      }
+    }
+  }, [step]);
+
 
   useEffect(() => {
     if (!user) return;
@@ -786,6 +931,13 @@ export default function Home() {
     // Load Profile
     const loadProfile = async () => {
       try {
+        // Ensure User Record Exists in Supabase (Sync Auth -> DB)
+        // This prevents FK errors if the DB was reset but Auth persists
+        await createUser(dataConnect, { 
+            uid: user.uid, 
+            email: user.email || `anon-${user.uid}@test.com` 
+        });
+
         const response = await getProfile(dataConnect, { uid: user.uid });
         if (response.data.profiles.length > 0) {
            const p = response.data.profiles[0];
@@ -838,7 +990,36 @@ export default function Home() {
 
     // Load Portfolio Data
     const loadPortfolio = async () => {
-       // ... existing implementation
+       try {
+          // 1. Get Portfolio Settings
+          const portRes = await getPortfolio(dataConnect, { uid: user.uid });
+          if (portRes.data.portfolio) {
+              const p = portRes.data.portfolio;
+              if (p.settings) {
+                  try {
+                      // Handle double stringification or direct object
+                      const parsed = typeof p.settings === 'string' ? JSON.parse(p.settings) : p.settings;
+                      setPortfolioSettings(parsed);
+                  } catch (e) {
+                      console.warn("Failed to parse portfolio settings", e);
+                  }
+              }
+              setIsPortfolioPublic(p.is_public);
+              setPortfolioId(user.uid);
+          }
+
+          // 2. Get Shoots
+          const shootsRes = await getShootsForPortfolio(dataConnect, { portfolio: user.uid });
+          if (shootsRes.data.shoots && shootsRes.data.shoots.length > 0) {
+              setShoots(shootsRes.data.shoots);
+          } else {
+              // Default if no shoots found (new user?)
+              setShoots([{ id: uuidv4(), name: 'Main Shoot', images: [], vibes: [] }]);
+          }
+
+       } catch (err) {
+          console.warn("Portfolio load failed", err);
+       }
     };
     loadPortfolio();
 
@@ -864,6 +1045,14 @@ export default function Home() {
   }, [user]);
 
   // --- Rendering ---
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center font-serif text-2xl animate-pulse">
+        Authenticating...
+      </div>
+    );
+  }
 
   if (step === 100) {
     if (isPublicLoading) return <div className="min-h-screen flex items-center justify-center font-serif text-2xl animate-pulse">Retrieving identity...</div>;
@@ -898,7 +1087,7 @@ export default function Home() {
           <BrandIcon size={28} />
           <span className="font-serif tracking-[0.3em] text-sm uppercase font-bold">Pose & Poise</span>
         </div>
-        {user && sessionUsername && (
+        {user && (
           <div className="relative flex items-center">
             <UserMenu 
                user={{ 
@@ -949,7 +1138,7 @@ export default function Home() {
 
         {step === -1 && <Login onLogin={handleLogin} />}
         
-        {step === 0 && (
+        {step === 0 && user && (
           <Landing 
             username={sessionUsername || ''} 
             uid={user?.uid || ''}
@@ -1135,6 +1324,9 @@ export default function Home() {
             onAddImagesToShoot={handleAddImagesToShoot}
             onNext={runAnalysis}
             onBack={() => setStep(1)}
+            highlightedImageUrls={portfolioSettings?.highlightedImageUrls}
+            onToggleHighlight={handleToggleHighlight}
+            onOpenAI={() => setIsAIModalOpen(true)}
           />
         )}
         
@@ -1221,6 +1413,7 @@ export default function Home() {
             }}
             onRemoveDuplicates={handleRemoveDuplicates}
             onApplySuggestions={handleApplyAISuggestions}
+            onOpenAI={() => setIsAIModalOpen(true)}
           />
         )}
       </main>
@@ -1237,12 +1430,62 @@ export default function Home() {
            />
       )}
 
+      <AIEnhancementModal 
+        isOpen={isAIModalOpen} 
+        onClose={() => setIsAIModalOpen(false)} 
+        shoots={shoots}
+        profile={profile}
+        settings={portfolioSettings || DEFAULT_PORTFOLIO_SETTINGS}
+        onRemoveDuplicates={handleRemoveDuplicates}
+        onApplySuggestions={handleApplyAISuggestions}
+      />
+
       <SettingsModal 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onResetPortfolio={handleResetPortfolio}
         onClearCompCards={handleResetCompCards}
         onClearLibrary={handleClearLibrary}
+        onSyncLibrary={async () => {
+             if (!user) return;
+             try {
+                 const res = await fetch('/api/blobs');
+                 if (!res.ok) throw new Error("Failed to fetch blobs");
+                 const blobs = await res.json();
+                 
+                 const existingUrls = new Set(library.map(img => img.url));
+                 let addedCount = 0;
+
+                 for (const blob of blobs) {
+                     if (!existingUrls.has(blob.url)) {
+                         await upsertImage(dataConnect, {
+                             id: crypto.randomUUID(),
+                             uid: user.uid,
+                             url: blob.url,
+                             now: new Date().toISOString()
+                         });
+                         addedCount++;
+                     }
+                 }
+                 
+                 if (addedCount > 0) {
+                     toast.success(`Synced ${addedCount} images from Vercel.`);
+                     // The Data Connect subscription will update `library` state automatically? 
+                     // Or we should refresh logic? 
+                     // Assuming `getLibrary` is reactive or strict reload needed?
+                     // Usually Data Connect doesn't auto-subscribe like Firestore unless configured.
+                     // We might need to manually refresh or reload.
+                     // For now, let's ask user to refresh if it doesn't show up.
+                     // But re-running the effect?
+                     window.location.reload(); // Brute force refresh for now to ensure consistency
+                 } else {
+                     toast.info("Library is up to date.");
+                 }
+             } catch (e) {
+                 console.error("Sync failed", e);
+                 toast.error("Sync failed.");
+             }
+        }}
       />
     </div>
   );

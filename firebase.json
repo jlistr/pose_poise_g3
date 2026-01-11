@@ -6,7 +6,9 @@
   "storage": {
     "rules": "storage.rules"
   },
-
+  "functions": {
+    "source": "functions"
+  },
   "emulators": {
     "auth": {
       "host": "0.0.0.0",
@@ -29,6 +31,21 @@
     "storage": {
       "host": "0.0.0.0",
       "port": 9199
+    },
+    "functions": {
+      "port": 5001
+    },
+    "database": {
+      "port": 9000
+    },
+    "pubsub": {
+      "port": 8085
+    },
+    "eventarc": {
+      "port": 9299
+    },
+    "tasks": {
+      "port": 9499
     }
   },
   "dataconnect": {

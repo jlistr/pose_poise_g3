@@ -42,6 +42,7 @@ export interface Shoot {
   photographerUrl?: string;
   studio?: string;
   studioUrl?: string;
+  date?: string; // ISO date string
 }
 
 export interface Aesthetic {

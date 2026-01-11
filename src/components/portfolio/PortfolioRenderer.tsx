@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Shoot, Profile } from '@/types';
 import { LayoutGrid, Maximize2, AppWindow, Eye, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
+import { TimelineView } from './TimelineView';
+
 export interface PortfolioSettings {
-  layout: 'grid' | 'masonry' | 'bento';
+  layout: 'grid' | 'masonry' | 'bento' | 'timeline';
   showHero: boolean;
   groupByCollection: boolean;
   heroStyle?: 'standard' | 'full';
   heroTextOverlay?: boolean;
   heroAnimation?: 'none' | 'zoom';
   showBio?: boolean;
+  bioStyle?: 'standard' | 'editorial' | 'split' | 'sticky';
   heroImageUrl?: string;
   highlightedImageUrls?: string[];
 }
@@ -135,6 +138,7 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
           <div className={`
             animate-in fade-in duration-700 w-full 
             ${settings.heroStyle === 'full' ? 'fixed inset-0 z-0 h-screen' : 'mb-20 pt-12'}
+            ${settings.bioStyle === 'split' && settings.heroStyle === 'full' ? 'flex' : ''}
           `}>
              <div 
                className={`
@@ -173,7 +177,21 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
                 </div>
 
                 {renderMetadataOverlay(shoots[0], true)}
+                {renderMetadataOverlay(shoots[0], true)}
              </div>
+
+             {/* Split Bio Side (Only for split + full hero) */}
+             {settings.bioStyle === 'split' && settings.heroStyle === 'full' && (
+                 <div className="w-1/2 h-full bg-white flex flex-col items-center justify-center p-24 text-center animate-in slide-in-from-right duration-700">
+                     <h1 className="text-6xl md:text-8xl font-serif tracking-tighter uppercase mb-8">{displayName}</h1>
+                     <div className="h-px w-24 bg-zinc-200 mb-8" />
+                     {profile?.description && (
+                        <p className="font-serif italic text-xl md:text-2xl text-zinc-600 leading-relaxed max-w-lg">
+                            "{profile.description}"
+                        </p>
+                     )}
+                 </div>
+             )}
           </div>
         )}
 
@@ -192,8 +210,8 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
            )}
         </div>
 
-        {/* Professional Bio Section */}
-        {settings.showBio && profile?.description && (
+        {/* Professional Bio Section (Standard Style Only) */}
+        {settings.showBio && settings.bioStyle === 'standard' && profile?.description && (
           <div className="max-w-2xl mx-auto mb-20 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
              <div className="h-px w-12 bg-zinc-200 mx-auto" />
              <p className="font-serif italic text-xl md:text-2xl text-zinc-600 leading-relaxed px-4">
@@ -204,8 +222,32 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
         )}
 
         {/* Content Rendering */}
-        <div className="space-y-24 flex-1 pb-24">
-          {settings.groupByCollection ? (
+        <div className={`
+             ${settings.bioStyle === 'sticky' ? 'flex flex-col md:flex-row gap-12' : 'space-y-24 flex-1 pb-24'}
+        `}>
+          
+          {/* Sticky Bio Sidebar */}
+          {settings.bioStyle === 'sticky' && settings.showBio && (
+              <div className="w-full md:w-1/3 text-left space-y-8 md:sticky md:top-32 h-fit mb-12 md:mb-0">
+                  <h2 className="text-4xl md:text-6xl font-serif tracking-tighter uppercase">{displayName}</h2>
+                  <div className="w-12 h-px bg-black" />
+                  {profile?.description && (
+                      <p className="font-serif italic text-lg leading-relaxed text-zinc-600">
+                          {profile.description}
+                      </p>
+                  )}
+                  {displayInsta && (
+                      <a href={`https://instagram.com/${displayInsta.replace('@', '')}`} target="_blank" rel="noreferrer" className="inline-block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-black transition-colors border-b border-transparent hover:border-black">
+                          Follow on Instagram
+                      </a>
+                  )}
+              </div>
+          )}
+
+          <div className={`${settings.bioStyle === 'sticky' ? 'w-full md:w-2/3 space-y-24 pb-24' : 'w-full'}`}>
+          {settings.layout === 'timeline' ? (
+              <TimelineView shoots={shoots} onImageClick={openLightbox} />
+          ) : settings.groupByCollection ? (
             // GROUPED VIEW: Render each shoot as a distinct section
             shoots.map(shoot => (
               <div key={shoot.id} className="space-y-8 animate-in slide-in-from-bottom-4 duration-700">
@@ -276,42 +318,53 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
                {flattenedImages.map((item, i) => {
                   const isHighlighted = settings.highlightedImageUrls?.includes(item.url);
                   let bentoSpan = '';
+                  // ... bento logic ...
                   if (settings.layout === 'bento') {
                     if (isHighlighted) {
                       bentoSpan = 'md:col-span-2 md:row-span-2';
                     } else {
-                      const pattern = [
-                        'md:col-span-2 md:row-span-2',
-                        'md:col-span-2 md:row-span-1',
-                        'md:col-span-1 md:row-span-1',
-                        'md:col-span-1 md:row-span-2',
-                        'md:col-span-2 md:row-span-2',
-                        'md:col-span-1 md:row-span-1',
-                      ];
-                      bentoSpan = pattern[i % pattern.length];
+                       // simplified for brevity in replace
+                       const pattern = ['md:col-span-2 md:row-span-2', 'md:col-span-2 md:row-span-1', 'md:col-span-1 md:row-span-1', 'md:col-span-1 md:row-span-2', 'md:col-span-2 md:row-span-2', 'md:col-span-1 md:row-span-1'];
+                       bentoSpan = pattern[i % pattern.length];
                     }
                   }
+
+                  // Editorial Bio Injection
+                  const showEditorialBio = settings.showBio && settings.bioStyle === 'editorial' && i === 1;
+
                   return (
-                    <div 
-                      key={i} 
-                      className={`
-                        group relative overflow-hidden rounded-sm bg-zinc-50 cursor-pointer break-inside-avoid animate-in zoom-in-50 duration-500
-                        ${settings.layout === 'grid' ? (isHighlighted ? 'aspect-[3/4] md:col-span-2 md:row-span-2' : 'aspect-[3/4]') : settings.layout === 'bento' ? `min-h-[250px] ${bentoSpan}` : 'mb-4'}
-                      `}
-                      style={{ animationDelay: `${i * 50}ms` }}
-                      onClick={() => openLightbox(item.url)}
-                      onTouchStart={() => handleTouchStart(item.url)}
-                      onTouchEnd={handleTouchEnd}
-                      onContextMenu={(e) => e.preventDefault()}
-                      onMouseLeave={() => setActiveOverlayUrl(null)}
-                    >
-                      <img src={item.url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                      {renderMetadataOverlay(item.shoot)}
-                    </div>
+                    <React.Fragment key={i}>
+                        {showEditorialBio && (
+                             <div className={`
+                                flex flex-col justify-center p-8 bg-black text-white rounded-sm break-inside-avoid
+                                ${settings.layout === 'grid' ? 'aspect-[3/4] md:col-span-2 md:row-span-2' : settings.layout === 'bento' ? 'md:col-span-2 md:row-span-2 min-h-[300px]' : 'mb-4 p-8'}
+                             `}>
+                                 <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">About the Model</span>
+                                 <h3 className="font-serif text-3xl md:text-4xl italic leading-tight mb-6">"{profile?.description || 'Determined to create art.'}"</h3>
+                                 <div className="w-12 h-px bg-white/20" />
+                             </div>
+                        )}
+                        <div 
+                          className={`
+                            group relative overflow-hidden rounded-sm bg-zinc-50 cursor-pointer break-inside-avoid animate-in zoom-in-50 duration-500
+                            ${settings.layout === 'grid' ? (isHighlighted ? 'aspect-[3/4] md:col-span-2 md:row-span-2' : 'aspect-[3/4]') : settings.layout === 'bento' ? `min-h-[250px] ${bentoSpan}` : 'mb-4'}
+                          `}
+                          style={{ animationDelay: `${i * 50}ms` }}
+                          onClick={() => openLightbox(item.url)}
+                          onTouchStart={() => handleTouchStart(item.url)}
+                          onTouchEnd={handleTouchEnd}
+                          onContextMenu={(e) => e.preventDefault()}
+                          onMouseLeave={() => setActiveOverlayUrl(null)}
+                        >
+                          <img src={item.url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                          {renderMetadataOverlay(item.shoot)}
+                        </div>
+                    </React.Fragment>
                   );
                })}
             </div>
           )}
+          </div> {/* End Sticky Content Wrapper */}
         </div>
       </div>
 

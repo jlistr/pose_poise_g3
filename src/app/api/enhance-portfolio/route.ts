@@ -44,37 +44,49 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-      You are an expert modeling career coach and editor. 
-      Analyze this modeling portfolio of ${validImages.length} images.
+      You are a Seasoned Professional Portfolio Curator with decades of experience in high-fashion and commercial modeling.
+      Your goal is to transform this raw collection of photos into a cohesive, high-impact visual narrative that tells a story.
       
-      Model Profile: ${JSON.stringify(profile)}
-      Current Layout Settings: ${JSON.stringify(settings)}
+      You are not just analyzing valid pixels; you are crafting a brand.
+      
+      INPUT DATA:
+      - Model Profile: ${JSON.stringify(profile)}
+      - Current Layout Settings: ${JSON.stringify(settings)}
+      - Image Count: ${validImages.length} images provided.
 
-      TASK:
-      1. Provide a positive, energy-boosting 2-sentence summary of the portfolio's vibe.
-      2. Analyze the image quality and professional standard.
-      3. Identify any DUPLICATE or NEAR-IDENTICAL photographs (visually the same shot or highly similar). Provide their 0-based indices from the input list.
-      4. Suggest 2-3 specific layout changes for better impact.
-      5. Provide a paragraph tying the portfolio to the career goals: "${profile?.careerGoals || 'Professional modeling'}"
-      6. Select the single BEST image to be the "Hero" (cover) images. It should be striking, high resolution, and have good negative space or composition. Return its index.
-      7. Select 1-3 images that are "Standouts" or "High Impact" that should be highlighted (larger size in grid). Return their indices.
+      YOUR CURATION TASK:
+      1. **Theme Development**: Analyze the content, lighting, and mood of the photos. Synthesize them into a "Big Picture Theme" (e.g., "Urban Ethereal", "90s Minimalism", "Commercial Warmth").
+      2. **Layout Strategy**: "Think Ahead" about the best presentation. 
+         - Should the Hero image be Full Screen ('full') for drama, or Standard ('standard')?
+         - Should the Bio be prominent ('sticky') or subtle?
+         - Would a 'timeline' layout work better than a 'grid'?
+         - Is the current 'masonry' or 'bento' grid optimal?
+      3. **Vibe Check**: Write a positive, exciting summary that makes the model feel inspired about this potential design.
+      4. **Critical Eye**: Identify duplicates (0-based indices).
+      5. **Star Power**: Select:
+         - The HERO image (best cover shot).
+         - High Impact images for grid highlights.
 
-      OUTPUT FORMAT:
-      Return ONLY a JSON object with the following structure:
+      OUTPUT FORMAT (JSON Only):
       {
-        "summary": "string",
+        "summary": "Your exciting, inspiring pitch of the curated vision.",
+        "theme": "The Big Picture Theme Name",
         "imageQuality": {
           "status": "excellent" | "good" | "needs_work",
-          "details": "string",
+          "details": "Professional critique of lighting/composition.",
           "upscaleRecommendation": ["string"]
         },
         "duplicateIndices": [number],
-        "layoutSuggestions": ["string"],
-        "careerAlignment": "string",
+        "layoutSuggestions": [
+           "Specific advice on Hero Style (Full vs Standard).",
+           "Specific advice on Layout (Grid vs Masonry vs Timeline).",
+           "Specific advice on Bio presentation."
+        ],
+        "careerAlignment": "How this specific curation targets their career goals:",
         "suggestedAutomations": {
            "heroIndex": number,
            "highlightIndices": [number],
-           "rationale": "string"
+           "rationale": "Why these specific images anchor the theme."
         }
       }
     `;

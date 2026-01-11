@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Shoot, Profile } from '@/types';
 import { BrandIcon } from '@/components/ui/BrandIcon';
-import { LayoutGrid, AppWindow, Maximize2, Globe, Lock, ExternalLink, Layers, RefreshCw, Grid2x2, Sparkles, Type, Play } from 'lucide-react';
-import { AIEnhancementModal } from './AIEnhancementModal';
+import { LayoutGrid, AppWindow, Maximize2, Globe, Lock, ExternalLink, Layers, RefreshCw, Grid2x2, Sparkles, Type, Play, ChevronDown, Clock } from 'lucide-react';
 import { PortfolioRenderer, PortfolioSettings } from './PortfolioRenderer';
+
+// Extended settings for local UI state
+interface EditorSettings extends PortfolioSettings {
+    _isHeroMenuOpen?: boolean;
+    _isBioMenuOpen?: boolean;
+}
+
 
 interface PortfolioEditorProps {
   shoots: Shoot[];
@@ -18,6 +24,7 @@ interface PortfolioEditorProps {
   onBack: () => void;
   onRemoveDuplicates?: (indices: number[]) => void;
   onApplySuggestions?: (heroIndex: number, highlightIndices: number[]) => void;
+  onOpenAI: () => void;
 }
 
 const DEFAULT_SETTINGS: PortfolioSettings = {
@@ -27,7 +34,8 @@ const DEFAULT_SETTINGS: PortfolioSettings = {
   heroStyle: 'standard',
   heroTextOverlay: false,
   heroAnimation: 'none',
-  showBio: false
+  showBio: false,
+  bioStyle: 'standard'
 };
 
 export const PortfolioEditor: React.FC<PortfolioEditorProps> = ({ 
@@ -42,13 +50,14 @@ export const PortfolioEditor: React.FC<PortfolioEditorProps> = ({
   onCurate,
   onBack,
   onRemoveDuplicates,
-  onApplySuggestions
+  onApplySuggestions,
+  onOpenAI
 }) => {
-  const [settings, setSettings] = useState<PortfolioSettings>(initialSettings || DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<EditorSettings>(initialSettings || DEFAULT_SETTINGS);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  // Modal state moved to parent
 
   // Track changes to show "Update" button state
   useEffect(() => {
@@ -90,20 +99,15 @@ export const PortfolioEditor: React.FC<PortfolioEditorProps> = ({
             
             {/* Display Toggles */}
             <div className="flex items-center space-x-4 text-[10px] font-bold uppercase tracking-widest">
-                <button 
-                  onClick={() => setSettings(s => ({ ...s, showHero: !s.showHero }))}
-                  className={`flex items-center space-x-2 transition-opacity ${settings.showHero ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
-                >
-                   <AppWindow size={14} /> <span>Hero</span>
-                </button>
+                {/* Hero toggle moved to dropdown */}
                 <button 
                   onClick={() => setSettings(s => ({ 
                     ...s, 
-                    layout: settings.layout === 'grid' ? 'masonry' : settings.layout === 'masonry' ? 'bento' : 'grid' 
+                    layout: settings.layout === 'grid' ? 'masonry' : settings.layout === 'masonry' ? 'bento' : settings.layout === 'bento' ? 'timeline' : 'grid' 
                   }))}
                   className="flex items-center space-x-2 transition-opacity hover:opacity-80"
                 >
-                   {settings.layout === 'grid' ? <LayoutGrid size={14} /> : settings.layout === 'masonry' ? <Maximize2 size={14} /> : <Grid2x2 size={14} />}
+                   {settings.layout === 'grid' ? <LayoutGrid size={14} /> : settings.layout === 'masonry' ? <Maximize2 size={14} /> : settings.layout === 'bento' ? <Grid2x2 size={14} /> : <Clock size={14} />}
                    <span>{settings.layout}</span>
                 </button>
                 <button 
@@ -112,36 +116,126 @@ export const PortfolioEditor: React.FC<PortfolioEditorProps> = ({
                 >
                    <Layers size={14} /> <span>Group</span>
                 </button>
+            {/* Bio Settings - Dropdown Group */}
+            <div className="relative">
                 <button 
-                   onClick={() => setSettings(s => ({ ...s, showBio: !s.showBio }))}
-                   className={`flex items-center space-x-2 transition-opacity ${settings.showBio ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
+                  onClick={() => setSettings(s => ({ ...s, _isBioMenuOpen: !s._isBioMenuOpen }))}
+                  className={`flex items-center space-x-2 text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all border ${
+                      (settings.showBio) 
+                      ? 'bg-white/10 border-white/20 text-white' 
+                      : 'border-transparent text-zinc-400 hover:text-white'
+                  }`}
                 >
-                   <Type size={14} /> <span>Bio</span>
+                   <Type size={14} />
+                   <span>Bio</span>
+                   <ChevronDown size={12} className={`transition-transform ${settings._isBioMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
+
+                {settings._isBioMenuOpen && (
+                    <div className="absolute top-full left-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl p-2 min-w-[200px] flex flex-col gap-1 overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
+                         <button 
+                            onClick={() => setSettings(s => ({ ...s, showBio: !s.showBio }))}
+                            className={`flex items-center justify-between w-full px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors ${
+                                settings.showBio ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                            }`}
+                        >
+                           <span className="flex items-center gap-2"><Type size={12} /> Show Bio</span>
+                           {settings.showBio && <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />}
+                        </button>
+                        
+                        {settings.showBio && (
+                            <>
+                                <div className="h-px bg-white/10 my-1" />
+                                <span className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 px-3 py-1">Style</span>
+                                {['standard', 'editorial', 'split', 'sticky'].map((style) => (
+                                    <button 
+                                        key={style}
+                                        onClick={() => setSettings(s => ({ ...s, bioStyle: style as any }))}
+                                        className={`flex items-center justify-between w-full px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors ${
+                                            settings.bioStyle === style ? 'text-white bg-white/10' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                                        }`}
+                                    >
+                                       <span className="capitalize">{style}</span>
+                                       {settings.bioStyle === style && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                    </button>
+                                ))}
+                            </>
+                        )}
+                    </div>
+                )}
+                 {settings._isBioMenuOpen && (
+                    <div className="fixed inset-0 z-[-1]" onClick={() => setSettings(s => ({ ...s, _isBioMenuOpen: false }))} />
+                )}
+            </div>
             </div>
 
             <div className="h-4 w-px bg-white/20"></div>
 
-            {/* Hero Specific Toggles */}
-            <div className="flex items-center space-x-4 text-[10px] font-bold uppercase tracking-widest">
+            {/* Hero Specific Toggles - Dropdown Group */}
+            <div className="relative">
                 <button 
-                  onClick={() => setSettings(s => ({ ...s, heroStyle: settings.heroStyle === 'full' ? 'standard' : 'full' }))}
-                  className={`flex items-center space-x-2 transition-opacity ${settings.heroStyle === 'full' ? 'opacity-100 text-indigo-400' : 'opacity-40 hover:opacity-100'}`}
+                  onClick={() => setSettings(s => ({ ...s, _isHeroMenuOpen: !s._isHeroMenuOpen }))}
+                  className={`flex items-center space-x-2 text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all border ${
+                      (settings.heroStyle === 'full' || settings.heroAnimation !== 'none' || settings.heroTextOverlay) 
+                      ? 'bg-white/10 border-white/20 text-white' 
+                      : 'border-transparent text-zinc-400 hover:text-white'
+                  }`}
                 >
-                   <Maximize2 size={14} /> <span>Full Hero</span>
+                   <AppWindow size={14} />
+                   <span>Hero Settings</span>
+                   <ChevronDown size={12} className={`transition-transform ${settings._isHeroMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
-                <button 
-                  onClick={() => setSettings(s => ({ ...s, heroAnimation: settings.heroAnimation === 'zoom' ? 'none' : 'zoom' }))}
-                  className={`flex items-center space-x-2 transition-opacity ${settings.heroAnimation === 'zoom' ? 'opacity-100 text-indigo-400' : 'opacity-40 hover:opacity-100'}`}
-                >
-                   <Play size={14} /> <span>Animate</span>
-                </button>
-                <button 
-                  onClick={() => setSettings(s => ({ ...s, heroTextOverlay: !s.heroTextOverlay }))}
-                  className={`flex items-center space-x-2 transition-opacity ${settings.heroTextOverlay ? 'opacity-100 text-indigo-400' : 'opacity-40 hover:opacity-100'}`}
-                >
-                   <Type size={14} /> <span>Text Overlay</span>
-                </button>
+
+                {settings._isHeroMenuOpen && (
+                    <div className="absolute top-full left-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl p-2 min-w-[180px] flex flex-col gap-1 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                         <button 
+                            onClick={() => setSettings(s => ({ ...s, showHero: !s.showHero }))}
+                            className={`flex items-center justify-between w-full px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors ${
+                                settings.showHero ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                            }`}
+                        >
+                           <span className="flex items-center gap-2"><AppWindow size={12} /> Show Hero</span>
+                           {settings.showHero && <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />}
+                        </button>
+                         <button 
+                            onClick={() => setSettings(s => ({ ...s, heroStyle: settings.heroStyle === 'full' ? 'standard' : 'full' }))}
+                            className={`flex items-center justify-between w-full px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors ${
+                                settings.heroStyle === 'full' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                            }`}
+                        >
+                           <span className="flex items-center gap-2"><Maximize2 size={12} /> Full Hero</span>
+                           {settings.heroStyle === 'full' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />}
+                        </button>
+
+                        <button 
+                            onClick={() => setSettings(s => ({ ...s, heroAnimation: settings.heroAnimation === 'zoom' ? 'none' : 'zoom' }))}
+                            className={`flex items-center justify-between w-full px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors ${
+                                settings.heroAnimation === 'zoom' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                            }`}
+                        >
+                           <span className="flex items-center gap-2"><Play size={12} /> Animate</span>
+                           {settings.heroAnimation === 'zoom' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />}
+                        </button>
+
+                        {/* Only show Text Overlay option if NOT Full Hero */}
+                        {settings.heroStyle !== 'full' && (
+                            <button 
+                                onClick={() => setSettings(s => ({ ...s, heroTextOverlay: !s.heroTextOverlay }))}
+                                className={`flex items-center justify-between w-full px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors ${
+                                    settings.heroTextOverlay ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                                }`}
+                            >
+                               <span className="flex items-center gap-2"><Type size={12} /> Text Overlay</span>
+                               {settings.heroTextOverlay && <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />}
+                            </button>
+                        )}
+                    </div>
+                )}
+                
+                {/* Click outside closer could be added, but relying on toggle for now for simplicity or add a backdrop */}
+                {settings._isHeroMenuOpen && (
+                    <div className="fixed inset-0 z-[-1]" onClick={() => setSettings(s => ({ ...s, _isHeroMenuOpen: false }))} />
+                )}
             </div>
          </div>
 
@@ -206,15 +300,6 @@ export const PortfolioEditor: React.FC<PortfolioEditorProps> = ({
          <button onClick={onBack} className="mt-4 hover:text-black underline">Back to Dashboard</button>
       </div>
 
-      <AIEnhancementModal 
-        isOpen={isAIModalOpen} 
-        onClose={() => setIsAIModalOpen(false)} 
-        shoots={shoots}
-        profile={profile}
-        settings={settings}
-        onRemoveDuplicates={onRemoveDuplicates}
-        onApplySuggestions={onApplySuggestions}
-      />
     </div>
   );
 };

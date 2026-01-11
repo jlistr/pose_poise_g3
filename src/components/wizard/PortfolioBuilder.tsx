@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, X, Edit2, Sparkles, Tag, Eye, EyeOff, Check, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Edit2, Sparkles, Tag, Eye, EyeOff, Check, Image as ImageIcon, Maximize2 } from 'lucide-react';
 import { Shoot, ImageItem } from '@/types';
 import { MetadataUploadModal } from '@/components/ui/MetadataUploadModal';
 
@@ -16,6 +16,9 @@ interface PortfolioBuilderProps {
   onAddImagesToShoot: (shootId: string | number, imageUrls: string[]) => void;
   onNext: () => void;
   onBack: () => void;
+  highlightedImageUrls?: string[];
+  onToggleHighlight?: (url: string) => void;
+  onOpenAI?: () => void;
 }
 
 export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({ 
@@ -29,7 +32,10 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
   library,
   onAddImagesToShoot,
   onNext, 
-  onBack 
+  onBack,
+  highlightedImageUrls = [],
+  onToggleHighlight,
+  onOpenAI
 }) => {
   const [editingShootId, setEditingShootId] = useState<string | number | null>(null);
   const [selectedLibraryImages, setSelectedLibraryImages] = useState<string[]>([]);
@@ -49,9 +55,20 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
 
   return (
     <div className="max-w-5xl mx-auto py-8 animate-in slide-in-from-bottom-4">
-      <div className="text-center mb-12">
+      <div className="text-center mb-12 relative">
         <h2 className="text-4xl font-serif mb-2">Portfolio Curation</h2>
         <p className="text-zinc-400 uppercase tracking-widest text-xs">Organize your shoots & credits</p>
+        
+        {onOpenAI && (
+           <div className="absolute top-0 right-0">
+              <button 
+                onClick={onOpenAI}
+                className="flex items-center space-x-2 text-[10px] font-bold uppercase px-4 py-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 text-indigo-400 rounded-full hover:from-indigo-500/20 hover:to-purple-500/20 transition-all shadow-sm"
+              >
+                <Sparkles size={14} /> <span>Curate with AI</span>
+              </button>
+           </div>
+        )}
       </div>
 
       {/* Quick Add Library */}
@@ -164,7 +181,16 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
                   <div key={i} className={`relative group/img aspect-[3/4] rounded-xl overflow-hidden transition-opacity ${isHidden ? 'opacity-40' : 'opacity-100'}`}>
                      <img src={img} className="w-full h-full object-cover shadow-sm" />
                      
-                     <div className="absolute top-2 right-2 flex space-x-2 transition-all opacity-0 group-hover/img:opacity-100">
+                     <div className="absolute top-2 right-2 flex space-x-2 transition-all opacity-0 group-hover/img:opacity-100 items-center">
+                        {onToggleHighlight && (
+                           <button 
+                             onClick={() => onToggleHighlight(img)}
+                             className={`p-1.5 rounded-full transition-all ${highlightedImageUrls.includes(img) ? 'bg-indigo-500 text-white' : 'bg-white/90 text-zinc-400 hover:text-indigo-500'}`}
+                             title="Highlight / Maximize Size"
+                           >
+                             <Maximize2 size={12} />
+                           </button>
+                        )}
                         <button 
                           onClick={() => onToggleVisibility?.(s.id, img)}
                           className={`p-1.5 bg-white/90 rounded-full ${isHidden ? 'text-zinc-400' : 'text-zinc-600'} hover:text-black transition-all`}
@@ -182,10 +208,15 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
                   </div>
                 );
               })}
-              <label className="aspect-[3/4] border-2 border-dashed border-zinc-100 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-zinc-300 hover:bg-zinc-50 transition-all">
+              <label className="aspect-[3/4] border-2 border-dashed border-zinc-100 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-zinc-300 hover:bg-zinc-50 transition-all w-full">
                 <Plus className="text-zinc-300 mb-2" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-300">Add Image</span>
-                <input type="file" multiple className="hidden" onChange={(e) => onShootUpload(s.id, e)} />
+                <input 
+                  type="file" 
+                  multiple 
+                  className="hidden" 
+                  onChange={(e) => onShootUpload(s.id, e)} 
+                />
               </label>
             </div>
           </div>

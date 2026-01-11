@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "emulators:kill": "kill $(lsof -t -i:9099 -i:8080 -i:4000 -i:9399 -i:9199 -i:5001 -i:9000 -i:8085 -i:9299 -i:9499)",
+    "dev:kill": "kill $(lsof -t -i:3000 -i:3001)"
   },
   "dependencies": {
     "@dataconnect/admin-generated": "file:src/dataconnect-admin-generated",
@@ -15,6 +17,8 @@
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.90.1",
     "@types/uuid": "^10.0.0",
+    "@vercel/blob": "^2.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.0",

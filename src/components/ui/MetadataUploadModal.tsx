@@ -52,6 +52,20 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
     });
   };
 
+  // Create previews safely
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    // Generate object URLs
+    const newPreviews = files.map(f => URL.createObjectURL(f));
+    setPreviews(newPreviews);
+
+    // Cleanup on unmount or file change
+    return () => {
+      newPreviews.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [files]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8">
@@ -70,9 +84,9 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
            {/* Thumbnails Preview */}
            <div className="flex -space-x-2 overflow-hidden py-2">
-              {files.slice(0, 5).map((f, i) => (
+              {previews.slice(0, 5).map((url, i) => (
                  <div key={`file-${i}`} className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-zinc-100 overflow-hidden relative">
-                    <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" />
+                    <img src={url} className="w-full h-full object-cover" />
                  </div>
               ))}
               {imageUrls.slice(0, 5).map((url, i) => (

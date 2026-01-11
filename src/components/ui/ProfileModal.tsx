@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { X, Ruler, User, Instagram, Camera, Upload, Sparkles } from 'lucide-react';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { upload } from '@vercel/blob/client';
+// Removed: import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+// Removed: import { storage } from '@/lib/firebase';
+import { auth } from '@/lib/firebase'; // Ensure we have auth for token
 import { storage } from '@/lib/firebase';
 import { SocialIntegrations } from '@/components/ui/SocialIntegrations';
 import { Profile, ImageItem } from '@/types';
@@ -78,14 +81,34 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ initialProfile, uid,
     
     if (avatarFile && uid) {
         try {
-            // Upload to Storage
-            const storageRef = ref(storage, `users/${uid}/avatar/${Date.now()}_${avatarFile.name}`);
-            await uploadBytes(storageRef, avatarFile);
-            const downloadUrl = await getDownloadURL(storageRef);
-            finalProfile.avatar = downloadUrl;
+            // Replaced Firebase Storage with Vercel Blob
+            // Manually handle filename uniqueness
+            const uniqueFilename = `${crypto.randomUUID()}-${avatarFile.name}`;
+            
+            // Note: We need a valid token for the API. 
+            // Since we don't have direct access to `auth.currentUser.getIdToken()` here easily 
+            // (unless we import `auth` from lib/firebase or pass it down),
+            // I will use `import { auth } from '@/lib/firebase';` which is available globally.
+            
+            // Get fresh token
+            const token = await import('@/lib/firebase').then(m => m.auth.currentUser?.getIdToken());
+            
+            if (!token) throw new Error("Not authenticated");
+
+            const blob = await upload(uniqueFilename, avatarFile, {
+                access: 'public',
+                handleUploadUrl: `/api/upload?auth=${token}`,
+                clientPayload: JSON.stringify({
+                    userId: uid,
+                    imageHash: 'avatar', // Optional or specific string
+                    contentType: avatarFile.type
+                })
+            });
+
+            finalProfile.avatar = blob.url;
         } catch (error) {
             console.error("Avatar upload failed:", error);
-            // Fallback or alert? For now proceed with saving other data, but clear avatar if partial fail
+            toast.error("Avatar upload failed.");
         }
     } else if (previewAvatar && !avatarFile) {
         // Keep existing avatar URL

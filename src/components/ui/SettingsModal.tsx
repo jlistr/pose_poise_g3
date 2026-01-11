@@ -7,9 +7,10 @@ interface SettingsModalProps {
   onResetPortfolio: () => Promise<void>;
   onClearCompCards: () => Promise<void>;
   onClearLibrary: () => Promise<void>;
+  onSyncLibrary: () => Promise<void>;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onResetPortfolio, onClearCompCards, onClearLibrary }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onResetPortfolio, onClearCompCards, onClearLibrary, onSyncLibrary }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'privacy' | 'data'>('general');
   const [confirmInput, setConfirmInput] = useState('');
   const [actionToConfirm, setActionToConfirm] = useState<'reset_portfolio' | 'clear_cards' | 'clear_library' | null>(null);
@@ -133,6 +134,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                               className="px-4 py-2 bg-zinc-50 border border-zinc-200 text-zinc-600 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
                            >
                               Reset Portfolio
+                           </button>
+                        </div>
+                    </div>
+
+                    {/* Sync Vercel Library */}
+                    <div className="p-6 border border-zinc-200 rounded-2xl space-y-4 hover:border-blue-200 transition-colors group">
+                        <div className="flex items-start justify-between">
+                           <div>
+                              <h4 className="font-bold text-zinc-900 group-hover:text-blue-900 transition-colors">Sync Vercel Blobs</h4>
+                              <p className="text-xs text-zinc-500 mt-1 max-w-sm">
+                                 Scans your Vercel Blob Storage for images that are missing from the app and imports them into your library.
+                              </p>
+                           </div>
+                           <button 
+                              onClick={async () => {
+                                 setIsProcessing(true);
+                                 await onSyncLibrary();
+                                 setIsProcessing(false);
+                              }}
+                              disabled={isProcessing}
+                              className="px-4 py-2 bg-zinc-50 border border-zinc-200 text-zinc-600 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors disabled:opacity-50"
+                           >
+                              {isProcessing ? 'Syncing...' : 'Sync Library'}
                            </button>
                         </div>
                     </div>

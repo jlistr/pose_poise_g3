@@ -8,16 +8,21 @@
  */
 
 import {setGlobalOptions} from "firebase-functions";
-import {onCall, HttpsError, CallableRequest} from "firebase-functions/v2/https";
+import {onCall, HttpsError, onRequest, CallableRequest} from "firebase-functions/v2/https";
 import {onObjectFinalized} from "firebase-functions/v2/storage";
 import {defineSecret} from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import {getStorage} from "firebase-admin/storage";
+import {FieldValue} from "firebase-admin/firestore";
+import cors = require("cors");
 
 // Initialize Admin SDK for database access
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
+
+const corsHandler = cors({origin: "http://localhost:3000"});
+
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -201,7 +206,7 @@ export const purchaseAndLinkDomain = onCall({ secrets: [vercelApiToken], cors: t
     const domainRecord = {
       domain,
       userId,
-      purchasedAt: admin.firestore.FieldValue.serverTimestamp(),
+      purchasedAt: FieldValue.serverTimestamp(),
       expiresAt: buyData.expiresAt,
       autoRenew: true,
       provider: "vercel",
@@ -237,77 +242,102 @@ export const getLibrary = onCall({ cors: true }, async (request: CallableRequest
  * @param {string} imageHash - SHA-256 hash of the image file.
  * @param {string} contentType - The MIME type of the file (e.g., "image/jpeg").
  */
-export const requestImageUploadURL = onCall({secrets: [lateApiKey], cors: true }, async (request) => {
-    if (!request.auth) {
-        throw new HttpsError("unauthenticated", "User must be logged in.");
-    }
+export const requestImageUploadURL = onRequest({secrets: [lateApiKey]}, async (request, response) => {
+    corsHandler(request, response, async () => {
+        const idToken = request.headers.authorization?.split("Bearer ")[1];
+        let uid: string | undefined;
 
-    const { imageHash, contentType } = request.data;
-    const userId = request.auth.uid;
-
-    if (!imageHash || !contentType) {
-        throw new HttpsError("invalid-argument", "Image hash and content type are required.");
-    }
-
-    const db = admin.firestore();
-    const hashRef = db.collection("image_hashes").doc(imageHash);
-    const hashDoc = await hashRef.get();
-
-    if (hashDoc.exists) {
-        const existingData = hashDoc.data();
-        if (existingData) {
-            // Optional: Check if the user has access to this image already
-            const imageRef = db.collection("users").doc(userId).collection("images").doc(existingData.fileId);
-            const imageDoc = await imageRef.get();
-            if (imageDoc.exists) {
-                return { duplicate: true, ...imageDoc.data() };
+        if (idToken) {
+            try {
+                const decodedToken = await admin.auth().verifyIdToken(idToken);
+                uid = decodedToken.uid;
+            } catch (error) {
+                console.error("Error verifying auth token:", error);
+                response.status(401).send({error: "Unauthorized"});
+                return;
             }
-            // If not, link existing storage object to this user
-            await imageRef.set({ ...existingData, createdAt: admin.firestore.FieldValue.serverTimestamp() });
-            return { duplicate: true, ...existingData };
         }
-    }
 
-    const fileId = db.collection("users").doc().id; // Generate a unique ID for the file
-    const tempPath = `temp_uploads/${userId}/${fileId}`;
-    
-    // Store pending record
-    await db.collection("image_metadata").doc(fileId).set({
-        userId,
-        imageHash,
-        contentType,
-        status: "pending",
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        tempPath: tempPath,
+        if (!uid) {
+            response.status(401).send({error: "Unauthorized"});
+            return;
+        }
+
+        const { imageHash, contentType } = request.body.data || request.body;
+        const userId = uid;
+
+        if (!imageHash || !contentType) {
+            response.status(400).send({error: "Image hash and content type are required."});
+            return;
+        }
+
+        try {
+            const db = admin.firestore();
+            const hashRef = db.collection("image_hashes").doc(imageHash);
+            const hashDoc = await hashRef.get();
+
+            if (hashDoc.exists) {
+                const existingData = hashDoc.data();
+                if (existingData) {
+                    const imageRef = db.collection("users").doc(userId).collection("images").doc(existingData.fileId);
+                    const imageDoc = await imageRef.get();
+                    if (imageDoc.exists) {
+                        response.status(200).send({ data: { duplicate: true, ...imageDoc.data() } });
+                        return;
+                    }
+                    await imageRef.set({ ...existingData, createdAt: FieldValue.serverTimestamp() });
+                    response.status(200).send({ data: { duplicate: true, ...existingData } });
+                    return;
+                }
+            }
+
+            const fileId = db.collection("users").doc().id;
+            const finalPath = `uploads/${userId}/${fileId}`;
+            
+            await db.collection("image_metadata").doc(fileId).set({
+                userId,
+                imageHash,
+                contentType,
+                status: "pending",
+                createdAt: FieldValue.serverTimestamp(),
+                path: finalPath,
+            });
+
+            const bucket = getStorage().bucket();
+            const file = bucket.file(finalPath);
+            const expires = Date.now() + 60 * 1000 * 5; // 5 minutes
+
+            const [signedUrl] = await file.getSignedUrl({
+                action: "write",
+                expires,
+                contentType,
+                version: "v4",
+            });
+
+            response.status(200).send({ data: { duplicate: false, signedUrl, fileId } });
+        } catch (error) {
+            console.error("Error generating signed URL:", error);
+            if (error instanceof HttpsError) {
+              response.status(error.httpErrorCode.status).send({error: error.message});
+            } else {
+              response.status(500).send({error: "Internal Server Error"});
+            }
+        }
     });
-
-    const bucket = getStorage().bucket();
-    const file = bucket.file(tempPath);
-    const expires = Date.now() + 60 * 1000 * 5; // 5 minutes
-
-    const [signedUrl] = await file.getSignedUrl({
-        action: "write",
-        expires,
-        contentType,
-        version: "v4",
-    });
-
-    return { duplicate: false, signedUrl, fileId };
 });
 
 /**
  * Triggered when a new file is uploaded to the temp path; moves it to permanent storage.
  */
 export const processUploadedImage = onObjectFinalized({
-    bucket: "gs://pose-poise-g3.appspot.com", // Your default bucket
     cpu: "gcf_gen1" // Explicitly use Gen 1 CPU for background functions if needed
 }, async (event) => {
     const fileBucket = event.bucket;
     const filePath = event.data.name; 
     const contentType = event.data.contentType;
 
-    if (!filePath.startsWith("temp_uploads/") || !contentType) {
-        console.log(`Object ${filePath} is not a temp upload. Ignoring.`);
+    if (!filePath.startsWith("uploads/") || !contentType) {
+        console.log(`Object ${filePath} is not a valid upload. Ignoring.`);
         return null;
     }
 
@@ -326,11 +356,11 @@ export const processUploadedImage = onObjectFinalized({
     }
 
     const { imageHash } = metadataData;
-    const permanentPath = `uploads/${userId}/${fileId}`;
+    const permanentPath = filePath; // File is already in the right place
     const bucket = getStorage().bucket(fileBucket);
 
-    // Move file to permanent location
-    await bucket.file(filePath).move(permanentPath);
+    // Skip move
+    // await bucket.file(filePath).move(permanentPath);
 
     const file = bucket.file(permanentPath);
     // Make public for simplicity; for private files, generate signed URLs on-demand
@@ -342,7 +372,7 @@ export const processUploadedImage = onObjectFinalized({
         status: "completed",
         path: permanentPath,
         downloadURL,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
     };
     await metadataRef.update(finalData);
 

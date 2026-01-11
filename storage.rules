@@ -1,8 +1,35 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    
+    // Helper functions
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isValidSize() {
+      return request.resource.size < 10 * 1024 * 1024; // 10MB limit
+    }
+
+    // Temporary Uploads (Staging)
+    match /temp_uploads/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isImage() && isValidSize();
+    }
+
+    // Permanent Uploads (Public Read, Owner Write)
+    match /uploads/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId); // Only owner can delete/update
+    }
+
+    // Deny everything else by default
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }
