@@ -44,49 +44,47 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-      You are a Seasoned Professional Portfolio Curator with decades of experience in high-fashion and commercial modeling.
-      Your goal is to transform this raw collection of photos into a cohesive, high-impact visual narrative that tells a story.
+      You are a Seasoned Professional Portfolio Curator (AI Agent) with a reputation for creating iconic, cohesive modeling portfolios.
       
-      You are not just analyzing valid pixels; you are crafting a brand.
+      YOUR MISSION:
+      "Take the wheel" and reorganize this model's entire image library into a stunning, professional portfolio.
+      Do not just analyze; ACT. Group images into cohesive "Shoots" or "Collections", name them creatively, and select the best layout.
       
       INPUT DATA:
       - Model Profile: ${JSON.stringify(profile)}
-      - Current Layout Settings: ${JSON.stringify(settings)}
-      - Image Count: ${validImages.length} images provided.
-
-      YOUR CURATION TASK:
-      1. **Theme Development**: Analyze the content, lighting, and mood of the photos. Synthesize them into a "Big Picture Theme" (e.g., "Urban Ethereal", "90s Minimalism", "Commercial Warmth").
-      2. **Layout Strategy**: "Think Ahead" about the best presentation. 
-         - Should the Hero image be Full Screen ('full') for drama, or Standard ('standard')?
-         - Should the Bio be prominent ('sticky') or subtle?
-         - Would a 'timeline' layout work better than a 'grid'?
-         - Is the current 'masonry' or 'bento' grid optimal?
-      3. **Vibe Check**: Write a positive, exciting summary that makes the model feel inspired about this potential design.
-      4. **Critical Eye**: Identify duplicates (0-based indices).
-      5. **Star Power**: Select:
-         - The HERO image (best cover shot).
-         - High Impact images for grid highlights.
+      - Current Settings: ${JSON.stringify(settings)}
+      - Total Image Count: ${validImages.length}
+      
+      YOUR CURATION PLAN:
+      1. **Theme**: Define a "Big Picture Theme" (e.g., "Cinema Verité", "90s Supermodel"). 
+      2. **Collections (Crucial)**: 
+         - Group the valid images into 1-4 distinct "Shoots" or "Sets". 
+         - Name each set creatively (e.g., "Studio Noir", "Golden Hour", "Editorial Print"). 
+         - Assign specific images (by 0-based index) to each set. 
+         - *Every good image should be used. Discard blurry/bad ones.*
+      3. **Hero**: Pick the absolute single best photo index for the MAIN COVER (Hero).
+      4. **Highlights**: Pick 2-5 indices that are "Standouts" to be highlighted (large) in the grid.
+      5. **Bio**: Write a short, punchy, editorial-style bio line based on the vibe.
 
       OUTPUT FORMAT (JSON Only):
       {
-        "summary": "Your exciting, inspiring pitch of the curated vision.",
-        "theme": "The Big Picture Theme Name",
+        "theme": "String",
+        "summary": "Your pitch to the model.",
+        "curatedShoots": [
+          {
+            "name": "Creative Set Name",
+            "imageIndices": [0, 1, 5], // 0-based indices from input list
+            "vibes": ["Tags", "For", "Set"],
+            "rationale": "Why these go together."
+          }
+        ],
+        "highlightIndices": [2, 8],
+        "heroIndex": 0,
+        "bioSuggestion": "Editorial bio update",
         "imageQuality": {
           "status": "excellent" | "good" | "needs_work",
-          "details": "Professional critique of lighting/composition.",
-          "upscaleRecommendation": ["string"]
-        },
-        "duplicateIndices": [number],
-        "layoutSuggestions": [
-           "Specific advice on Hero Style (Full vs Standard).",
-           "Specific advice on Layout (Grid vs Masonry vs Timeline).",
-           "Specific advice on Bio presentation."
-        ],
-        "careerAlignment": "How this specific curation targets their career goals:",
-        "suggestedAutomations": {
-           "heroIndex": number,
-           "highlightIndices": [number],
-           "rationale": "Why these specific images anchor the theme."
+          "details": "Critique",
+          "upscaleRecommendation": []
         }
       }
     `;
@@ -98,7 +96,23 @@ export async function POST(req: Request) {
     const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const result = JSON.parse(cleanText);
 
-    return NextResponse.json(result);
+    // Map indices back to URLs for the frontend convenience
+    // (Frontend needs URLs to reconstruct shoots)
+    // We return both indices (for debug) and URLs (for action)
+    const allUrls = imageUrls; // original list
+    
+    // Helper to separate mapped result
+    const hydration = {
+        ...result,
+        heroUrl: allUrls[result.heroIndex],
+        highlightedUrls: result.highlightIndices?.map((i: number) => allUrls[i]),
+        curatedShoots: result.curatedShoots?.map((s: any) => ({
+            ...s,
+            images: s.imageIndices?.map((i: number) => allUrls[i])
+        }))
+    };
+
+    return NextResponse.json(hydration);
 
   } catch (error) {
     console.error('Enhance Portfolio Error:', error);

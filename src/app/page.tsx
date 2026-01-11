@@ -332,6 +332,62 @@ export default function Home() {
     });
   };
 
+  const handleApplyCuration = async (
+    curatedShoots: { name: string; images: string[]; vibes: string[] }[], 
+    heroUrl?: string, 
+    highlightedUrls?: string[]
+  ) => {
+    if (!user) return;
+    try {
+       // 1. Construct new Shoots (generating new IDs)
+       const newShoots: Shoot[] = curatedShoots.map(s => ({
+          id: crypto.randomUUID(),
+          name: s.name,
+          images: s.images, // these are URLs from the library
+          vibes: s.vibes,
+          photographer: '', // TODO: Could lookup from library metadata if we had it mapped
+          studio: '',
+          date: new Date().toISOString()
+       }));
+
+       // 2. Update Settings
+       const newSettings: PortfolioSettings = {
+         ...(portfolioSettings || DEFAULT_PORTFOLIO_SETTINGS),
+         showHero: !!heroUrl,
+         heroImageUrl: heroUrl,
+         // Ensure we don't lose hero style preference, but maybe default to 'full' for impact
+         heroStyle: portfolioSettings?.heroStyle || 'full', 
+         highlightedImageUrls: highlightedUrls || []
+       };
+
+       // 3. Persist Changes (This is a destructive replacement of shoots)
+       // We should delete old shoots from DB to avoid orphans?
+       // handlePortfolioUpdate upserts, but doesn't delete missing ones unless we handle it.
+       // Current handlePortfolioUpdate expects us to manage state.
+       // The DB sync logic in handlePortfolioUpdate iterates `shoots` state. 
+       // It doesn't explicitly delete *other* shoots unless we implemented that.
+       // Let's rely on the fact that the Portfolio Record links to what we have? 
+       // No, Shoots have `portfolio_id` or `uid`.
+       // For a proper cleanup, we should delete old shoots.
+       
+       const oldShootIds = shoots.map(s => String(s.id));
+       await Promise.all(oldShootIds.map(id => deleteShoot(dataConnect, { id })));
+
+       setShoots(newShoots);
+       setPortfolioSettings(newSettings);
+       
+       // 4. Save New Configuration
+       // We pass the NEW state explicitly to avoid race conditions with React state updates
+       await handlePortfolioUpdate(newSettings, newShoots);
+       
+       toast.success("Portfolio curated successfully!");
+       setIsAIModalOpen(false); // Close AI after success
+    } catch (err) {
+       console.error("Curation application failed", err);
+       toast.error("Failed to apply curation.");
+    }
+  };
+
   const handleResetPortfolio = async () => {
     if (!user) return;
     try {
@@ -1438,6 +1494,8 @@ export default function Home() {
         settings={portfolioSettings || DEFAULT_PORTFOLIO_SETTINGS}
         onRemoveDuplicates={handleRemoveDuplicates}
         onApplySuggestions={handleApplyAISuggestions}
+        onApplyCuration={handleApplyCuration}
+        library={library}
       />
 
       <SettingsModal 

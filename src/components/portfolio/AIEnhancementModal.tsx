@@ -11,27 +11,44 @@ interface AIEnhancementModalProps {
   settings: PortfolioSettings;
   onRemoveDuplicates?: (indices: number[]) => void;
   onApplySuggestions?: (heroIndex: number, highlightIndices: number[]) => void;
+  library?: { id: string | number; url: string }[];
+  onApplyCuration?: (curatedShoots: any[], heroUrl?: string, highlightedUrls?: string[]) => void;
 }
 
 interface AIAnalysis {
   summary: string;
-  theme?: string; // New Theme Field
+  theme?: string;
   imageQuality: {
     status: 'excellent' | 'good' | 'needs_work';
     details: string;
     upscaleRecommendation: string[];
   };
-  duplicateIndices: number[];
-  layoutSuggestions: string[];
+  highlightIndices?: number[];
+  heroIndex?: number;
+  duplicateIndices: number[]; // Ensure this is always defined or optional
+  layoutSuggestions?: string[];
   careerAlignment: string;
   suggestedAutomations?: {
     heroIndex: number;
     highlightIndices: number[];
     rationale: string;
   };
+  curatedShoots?: {
+    name: string;
+    images: string[];
+    vibes: string[];
+    rationale: string;
+  }[];
+  heroUrl?: string;
+  highlightedUrls?: string[];
+  bioSuggestion?: string;
 }
 
-export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({ isOpen, onClose, shoots, profile, settings, onRemoveDuplicates, onApplySuggestions }) => {
+export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({ 
+  isOpen, onClose, shoots, profile, settings, 
+  onRemoveDuplicates, onApplySuggestions, onApplyCuration, 
+  library = [] 
+}) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +74,7 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({ isOpen, 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrls: allImages,
+          library, // Pass full library for Active Curator
           profile,
           settings
         })
@@ -77,7 +95,7 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({ isOpen, 
   };
 
   const handleCleanup = async () => {
-    if (!analysis?.duplicateIndices.length || !onRemoveDuplicates) return;
+    if (!analysis?.duplicateIndices?.length || !onRemoveDuplicates) return;
     setIsCleaning(true);
     try {
       await onRemoveDuplicates(analysis.duplicateIndices);
@@ -205,7 +223,7 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({ isOpen, 
                          <CheckCircle2 size={14} className="text-zinc-300" />
                       </div>
                       <ul className="space-y-3">
-                         {analysis.layoutSuggestions.map((s, i) => (
+                         {analysis.layoutSuggestions?.map((s, i) => (
                            <li key={i} className="flex items-start space-x-3 group text-center text-left">
                               <span className="w-1.5 h-1.5 rounded-full bg-indigo-200 mt-1.5 shrink-0 group-hover:bg-indigo-500 transition-colors" />
                               <span className="text-xs text-zinc-600 leading-tight">{s}</span>
