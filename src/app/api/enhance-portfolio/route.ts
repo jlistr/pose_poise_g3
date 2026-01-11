@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: Request) {
   try {
-    const { imageUrls, profile, settings } = await req.json();
+    const { imageUrls, profile, settings, customInstructions } = await req.json();
 
     if (!process.env.GEMINI_API_KEY) {
         return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
@@ -47,19 +47,23 @@ export async function POST(req: Request) {
       You are a Seasoned Professional Portfolio Curator (AI Agent) with a reputation for creating iconic, cohesive modeling portfolios.
       
       YOUR MISSION:
-      "Take the wheel" and reorganize this model's entire image library into a stunning, professional portfolio.
-      Do not just analyze; ACT. Group images into cohesive "Shoots" or "Collections", name them creatively, and select the best layout.
+      "Take the wheel" and reorganize this model's entire available image library into a stunning, professional portfolio.
+      This library represents all their current assets. Your job is to curate, group, and name these images into cohesive "Shoots" or "Collections" as if you were building an iconic portfolio from scratch.
+      Do not just analyze; ACT. Name collections creatively and select the best layout.
       
       INPUT DATA:
       - Model Profile: ${JSON.stringify(profile)}
       - Current Settings: ${JSON.stringify(settings)}
-      - Total Image Count: ${validImages.length}
+      - Total Library Image Count: ${validImages.length}
+      ${customInstructions ? `- USER GOAL (HIGH PRIORITY): "${customInstructions}"` : ''}
       
       YOUR CURATION PLAN:
-      1. **Theme**: Define a "Big Picture Theme" (e.g., "Cinema Verité", "90s Supermodel"). 
+      1. **Theme**: Define a "Big Picture Theme". 
       2. **Collections (Crucial)**: 
-         - Group the valid images into 1-4 distinct "Shoots" or "Sets". 
-         - Name each set creatively (e.g., "Studio Noir", "Golden Hour", "Editorial Print"). 
+         - Group the valid images into 1-6 distinct "Shoots" or "Sets". 
+         ${customInstructions ? `- ADHERE STRICTLY to the User Goal: ${customInstructions}` : '- Reorganize based on visual cohesion, lighting, location, and aesthetic.'}
+         - **Creative Naming**: Give each set a HIGHLY DESCRIPTIVE name. 
+         - **Detection**: Look for similar locations (e.g., "Industrial Alley"), specific outfits (e.g., "The Red Gown"), or distinct lighting styles.
          - Assign specific images (by 0-based index) to each set. 
          - *Every good image should be used. Discard blurry/bad ones.*
       3. **Hero**: Pick the absolute single best photo index for the MAIN COVER (Hero).

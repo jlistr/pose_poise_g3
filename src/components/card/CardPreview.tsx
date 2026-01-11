@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Share2, Copy, FileText, ArrowRight, ExternalLink, Check, Sparkles } from 'lucide-react';
+import { Plus, Share2, Copy, FileText, ArrowRight, ExternalLink, Check, Sparkles, RefreshCw, Square } from 'lucide-react';
 import { FrontPlate } from '@/components/card/FrontPlate';
 import { BackPlate } from '@/components/card/BackPlate';
 import { CardData, ImageItem, Profile } from '@/types';
@@ -37,12 +37,18 @@ export const CardPreview: React.FC<CardPreviewProps> = ({
   const [frontLayout, setFrontLayout] = useState<string>(initialFrontLayout);
   const [backLayout, setBackLayout] = useState<string>(initialBackLayout);
   const [compCardSide, setCompCardSide] = useState<'front' | 'back'>('front');
-
   const [isStyling, setIsStyling] = useState(false);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [lastSavedMark, setLastSavedMark] = useState<string>(JSON.stringify({ n: initialName, f: initialFrontLayout, b: initialBackLayout }));
 
   const handleStyleWithAI = async () => {
       setIsStyling(true);
       const toastId = toast.loading("AI is designing your layout...");
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       try {
           const res = await fetch('/api/recommend-layout', {
               method: 'POST',
@@ -50,7 +56,8 @@ export const CardPreview: React.FC<CardPreviewProps> = ({
               body: JSON.stringify({ 
                   images: cardData.images.map(i => i.url),
                   profile: cardData.profile
-              })
+              }),
+              signal: controller.signal
           });
           
           if (!res.ok) throw new Error("Layout generation failed");
@@ -62,12 +69,26 @@ export const CardPreview: React.FC<CardPreviewProps> = ({
           toast.success("Design refreshed!", { id: toastId });
           if (data.reasoning) toast.info(data.reasoning, { duration: 5000 });
 
-      } catch (e) {
-          console.error(e);
-          toast.error("Could not generate layout", { id: toastId });
+      } catch (e: any) {
+          if (e.name === 'AbortError') {
+              console.log("Layout generation aborted");
+          } else {
+              console.error(e);
+              toast.error("Could not generate layout", { id: toastId });
+          }
       } finally {
           setIsStyling(false);
+          abortControllerRef.current = null;
       }
+  };
+
+  const handleStopAI = () => {
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+        setIsStyling(false);
+        toast.info("AI design stopped.");
+    }
   };
 
   const publicUrl = currentCardId ? `${window.location.origin}?cardId=${currentCardId}` : null;
@@ -79,6 +100,33 @@ export const CardPreview: React.FC<CardPreviewProps> = ({
   React.useEffect(() => {
      if (initialName !== undefined) setCardName(initialName);
   }, [initialName]);
+
+  // Debounced Auto-save
+  useEffect(() => {
+    if (!currentCardId) return; // Only auto-save if card already exists
+
+    const currentMark = JSON.stringify({ n: cardName, f: frontLayout, b: backLayout });
+    if (currentMark === lastSavedMark) {
+      setHasChanges(false);
+      return;
+    }
+
+    setHasChanges(true);
+    const timer = setTimeout(async () => {
+      setIsSaving(true);
+      try {
+        await onSave(cardName, frontLayout, backLayout);
+        setLastSavedMark(currentMark);
+        setHasChanges(false);
+      } catch (error) {
+        console.error("Card Auto-save failed:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [cardName, frontLayout, backLayout, currentCardId, onSave, lastSavedMark]);
 
   const handleNameChange = (val: string) => {
      setCardName(val);
@@ -105,13 +153,11 @@ export const CardPreview: React.FC<CardPreviewProps> = ({
         <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 flex flex-col space-y-2">
             <div className="flex items-center justify-between">
                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Card Name</label>
-               {cardName !== initialName && currentCardId && (
-                   <button 
-                      onClick={handleSaveClick}
-                      className="text-[10px] font-bold uppercase tracking-wider text-green-600 flex items-center gap-1 hover:bg-green-50 px-2 py-1 rounded-md transition-colors"
-                   >
-                     <Check size={12} /> Save
-                   </button>
+               {currentCardId && (
+                   <div className={`text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 px-2 py-1 rounded-md ${isSaving ? 'text-zinc-400' : hasChanges ? 'text-indigo-400' : 'text-green-500'}`}>
+                      {isSaving ? <RefreshCw size={10} className="animate-spin" /> : hasChanges ? <RefreshCw size={10} /> : <Check size={10} />}
+                      {isSaving ? 'Saving...' : hasChanges ? 'Changes Pending' : 'Saved'}
+                   </div>
                )}
             </div>
             <input 
@@ -124,13 +170,21 @@ export const CardPreview: React.FC<CardPreviewProps> = ({
 
         <div className="space-y-6">
            {/* AI Style Button */}
-           <button 
-              onClick={handleStyleWithAI}
-              disabled={isStyling}
-              className="w-full py-3 bg-purple-50 text-purple-700 border border-purple-100 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-purple-100 transition-colors"
-           >
-              <Sparkles size={14} /> {isStyling ? 'Designing...' : 'Style Card Layout Using AI'}
-           </button>
+           {isStyling ? (
+               <button 
+                  onClick={handleStopAI}
+                  className="w-full py-3 bg-red-50 text-red-700 border border-red-100 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+               >
+                  <Square size={14} fill="currentColor" /> Stop AI Designer
+               </button>
+           ) : (
+               <button 
+                  onClick={handleStyleWithAI}
+                  className="w-full py-3 bg-purple-50 text-purple-700 border border-purple-100 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-purple-100 transition-colors"
+               >
+                  <Sparkles size={14} /> Style Card Layout Using AI
+               </button>
+           )}
 
            <div className="space-y-4">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Front Design</h4>

@@ -1,11 +1,9 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator, enableNetwork } from "firebase/firestore";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
-import { getDataConnect, connectDataConnectEmulator } from 'firebase/data-connect';
 import { getStorage, connectStorageEmulator } from "firebase/storage";
-import { connectorConfig } from '@/dataconnect-generated';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -22,7 +20,6 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app);
-const dataConnect = getDataConnect(app, connectorConfig);
 const storage = getStorage(app);
 
 let analytics: any = null;
@@ -40,20 +37,19 @@ const shouldConnectEmulators =
   process.env.NEXT_PUBLIC_APP_ENV === 'qa' ||
   (process.env.NODE_ENV === 'development' && typeof window !== 'undefined' && window.location.hostname === 'localhost');
 
-if (shouldConnectEmulators) {
-  try {
-    // Only connect if not already connected (check for existing config/state if possible, 
-    // but the SDK usually throws if you try twice, which we catch below)
-    connectAuthEmulator(auth, "http://127.0.0.1:9099");
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    connectDataConnectEmulator(dataConnect, 'localhost', 9399); 
-    connectStorageEmulator(storage, 'localhost', 9199);
-    connectFunctionsEmulator(functions, 'localhost', 5001);
-    console.log('Connected to Emulators (Auth, Firestore, DataConnect, Storage, Functions)');
-  } catch (e) {
-    // Emulator likely already connected
-    console.warn("Emulator connection warning (already connected?):", e);
-  }
-}
+// if (shouldConnectEmulators) {
+//   try {
+//     // Only connect if not already connected (check for existing config/state if possible, 
+//     // but the SDK usually throws if you try twice, which we catch below)
+//     connectAuthEmulator(auth, "http://127.0.0.1:9099");
+//     connectFirestoreEmulator(db, 'localhost', 8080);
+//     connectStorageEmulator(storage, 'localhost', 9199);
+//     connectFunctionsEmulator(functions, 'localhost', 5001);
+//     console.log('Connected to Emulators (Auth, Firestore, Storage, Functions)');
+//   } catch (e) {
+//     // Emulator likely already connected
+//     console.warn("Emulator connection warning (already connected?):", e);
+//   }
+// }
 
-export { app, analytics, auth, db, dataConnect, functions, storage };
+export { app, analytics, auth, db, functions, storage };

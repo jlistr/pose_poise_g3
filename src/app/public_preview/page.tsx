@@ -3,8 +3,8 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore'; // Keep for now if legacy fallback needed, or remove
-import { db, dataConnect } from '@/lib/firebase';
-import { getPortfolio, getShootsForPortfolio, getProfile } from '@/dataconnect-generated';
+import { db } from '@/lib/firebase';
+import { getPortfolio, getShootsForPortfolio, getProfile, getProfileByInstagram } from '@/lib/data-supabase';
 import { PortfolioRenderer, PortfolioSettings } from '@/components/portfolio/PortfolioRenderer';
 import { Shoot, Profile } from '@/types';
 import { BrandIcon } from '@/components/ui/BrandIcon';
@@ -24,76 +24,68 @@ function PublicPreview() { // Renamed from PublicPreviewContent
       const searchParams = new URLSearchParams(window.location.search);
       const userId = searchParams.get('userid');
       const portfolioId = searchParams.get('portfolioid');
+      const username = searchParams.get('username');
 
-      if (!userId && !portfolioId) {
+      if (!userId && !portfolioId && !username) {
         setError('Missing parameters');
         setLoading(false);
         return;
       }
 
       try {
-        let dcUid = userId || portfolioId;
+        let dcUid = userId;
+        let dcPortId = portfolioId;
         
-        // Use Data Connect SDK
-        // We assume fetching by UID works for now as the portfolioId implies the user's portfolio.
-        // If public viewing requires a distinct check, we might need a specific 'getPublicPortfolio' query later.
-        // For now, standard getter works if rules allow or if we are in an emulator environment/testing.
-        
-        if (!dcUid) throw new Error("No ID provided");
-
-        // Parallel fetch from Data Connect
-        const [portfolioRes, shootsRes, profileRes] = await Promise.all([
-             getPortfolio(dataConnect, { uid: dcUid }),
-             getShootsForPortfolio(dataConnect, { uid: dcUid }),
-             getProfile(dataConnect, { uid: dcUid })
-        ]);
-
-        // Process Portfolio Settings
-        if (portfolioRes.data.portfolios.length > 0) {
-            const p = portfolioRes.data.portfolios[0];
-            if (p.settings) {
-                try {
-                    setSettings(JSON.parse(p.settings));
-                } catch (e) { console.error("Settings parse error", e); }
+        // Resolve Username to UID if needed
+        if (!dcUid && !dcPortId && username) {
+            console.log("Resolving username:", username);
+            const userRes = await getProfileByInstagram({ handle: username });
+            if (userRes.data.profiles.length > 0) {
+                dcUid = userRes.data.profiles[0].uid;
+                console.log("Resolved to UID:", dcUid);
+            } else {
+                throw new Error("User not found via handle");
             }
-        } 
+        }
+
+        if (!dcUid && !dcPortId) throw new Error("No ID provided");
+
+        // 1. Fetch Portfolio first to resolve identity if using portId
+        const portQuery = dcPortId ? { id: dcPortId } : { uid: dcUid! };
+        const portfolioRes = await getPortfolio(portQuery);
+        
+        if (portfolioRes.data.portfolios.length === 0) {
+             throw new Error("Portfolio not found");
+        }
+
+        const p = portfolioRes.data.portfolios[0];
+        const resolvedUid = p.uid;
+        
+        // Process Portfolio Settings
+        if (p.settings) {
+            try {
+                setSettings(JSON.parse(p.settings));
+            } catch (e) { console.error("Settings parse error", e); }
+        }
+
+        // 2. Parallel fetch Shoots and Profile using resolved UID
+        const [shootsRes, profileRes] = await Promise.all([
+             getShootsForPortfolio({ uid: resolvedUid }),
+             getProfile({ uid: resolvedUid })
+        ]);
 
         // Process Shoots
         if (shootsRes.data.shoots.length > 0) {
-            console.log("PublicPreview: Shoots raw data:", JSON.stringify(shootsRes.data.shoots, null, 2));
-            const mappedShoots = shootsRes.data.shoots.map(s => {
-                const allShootImages = (s.shootImages_on_shoot as any[] || []).sort((a,b) => a.order - b.order);
-                const imgUrls = allShootImages.map(i => i.image?.url).filter(Boolean);
-                const hiddenUrls = allShootImages.filter(i => i.isVisible === false).map(i => i.image?.url).filter(Boolean);
-                
-                console.log(`PublicPreview: Shoot ${s.name} has ${imgUrls.length} total, ${hiddenUrls.length} hidden`);
-                
-                return {
-                    id: s.id,
-                    name: s.name,
-                    vibes: s.vibes ? s.vibes.split(',').filter(Boolean) : [],
-                    photographer: s.photographer || '',
-                    studio: s.studio || '',
-                    images: imgUrls,
-                    hiddenImages: hiddenUrls
-                };
-            });
-            setShoots(mappedShoots);
-        } else {
-            console.log("PublicPreview: No shoots found for UID:", dcUid);
+             setShoots(shootsRes.data.shoots as any);
         }
 
-        // Process Profile (for Name)
+        // Process Profile
         if (profileRes.data.profiles.length > 0) {
-            const p = profileRes.data.profiles[0];
-            setProfile(p as any); // Cast to match UI type if slight mismatch
-            setPortfolioName(p.name);
+            const prof = profileRes.data.profiles[0];
+            setProfile(prof as any);
+            setPortfolioName(prof.name);
         } else {
              setPortfolioName("Professional Portfolio");
-        }
-
-        if (portfolioRes.data.portfolios.length === 0 && shootsRes.data.shoots.length === 0) {
-             setError("Portfolio not found");
         }
 
       } catch (err) {
@@ -131,7 +123,18 @@ function PublicPreview() { // Renamed from PublicPreviewContent
        <div className="text-center pt-12 mb-8">
           <BrandIcon size={32} className="mx-auto mb-4" />
           {portfolioName && (
-             <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Portfolio: {portfolioName}</p>
+             <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">{portfolioName}</p>
+          )}
+
+          {profile?.instagram && (
+             <a 
+               href={`https://instagram.com/${profile.instagram.replace('@', '')}`}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="mt-6 inline-flex items-center space-x-2 px-8 py-3 bg-black text-white rounded-full text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all active:scale-95 shadow-lg shadow-black/5"
+             >
+               <span>Inquire for Collaborations</span>
+             </a>
           )}
        </div>
        <div className="px-8">

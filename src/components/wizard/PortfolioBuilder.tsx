@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, X, Edit2, Sparkles, Tag, Eye, EyeOff, Check, Image as ImageIcon, Maximize2 } from 'lucide-react';
+import { Plus, X, Edit2, Sparkles, Tag, Eye, EyeOff, Check, Image as ImageIcon, Maximize2, Camera } from 'lucide-react';
 import { Shoot, ImageItem } from '@/types';
 import { MetadataUploadModal } from '@/components/ui/MetadataUploadModal';
+import { ModernDatePicker } from '@/components/ui/ModernDatePicker';
 
 interface PortfolioBuilderProps {
   shoots: Shoot[];
@@ -21,6 +22,34 @@ interface PortfolioBuilderProps {
   onOpenAI?: () => void;
 }
 
+const PhotographerCreditReminder: React.FC<{ onDismiss: () => void }> = ({ onDismiss }) => {
+  const [isVisible, setIsVisible] = React.useState(true);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(onDismiss, 600); // wait for exit animation
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <div className={`absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-white border border-indigo-100 px-6 py-2 rounded-full shadow-xl shadow-indigo-500/10 z-20 transition-all duration-700
+      ${isVisible ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-4 opacity-0 scale-95'}
+    `}>
+       <div className="bg-indigo-500 p-1.5 rounded-full text-white">
+          <Camera size={12} />
+       </div>
+       <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 whitespace-nowrap">
+          Psst! Friendly reminder to credit your photographer 📸
+       </span>
+       <button onClick={() => setIsVisible(false)} className="text-zinc-300 hover:text-indigo-500 transition-colors">
+          <X size={12} />
+       </button>
+    </div>
+  );
+};
+
 export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({ 
   shoots, 
   onAddShoot, 
@@ -39,6 +68,7 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
 }) => {
   const [editingShootId, setEditingShootId] = useState<string | number | null>(null);
   const [selectedLibraryImages, setSelectedLibraryImages] = useState<string[]>([]);
+  const [dismissedReminders, setDismissedReminders] = useState<Set<string | number>>(new Set());
 
   const getShootToEdit = () => shoots.find(s => s.id === editingShootId);
 
@@ -115,7 +145,11 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
 
       <div className="space-y-12">
         {shoots.map(s => (
-          <div key={s.id} className="bg-white border border-zinc-100 p-8 rounded-[2rem] shadow-sm group">
+          <div key={s.id} className="bg-white border border-zinc-100 p-8 rounded-[2rem] shadow-sm group relative">
+            {/* Photographer Credit Reminder */}
+            {!s.photographer && s.images.length > 0 && !dismissedReminders.has(s.id) && (
+               <PhotographerCreditReminder onDismiss={() => setDismissedReminders(prev => new Set([...prev, s.id]))} />
+            )}
             {/* Header / Title */}
             <div className="mb-8 flex items-center justify-between">
                <div className="flex-1 relative mr-4">
@@ -126,6 +160,20 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
                     placeholder="Collection Name"
                   />
                   <Edit2 size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-zinc-300 pointer-events-none" />
+                  
+                  <div className="mt-2 flex items-center space-x-4">
+                    <div className="flex flex-col min-w-[120px]">
+                      <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-300 mb-1">Shoot Date</label>
+                      <ModernDatePicker 
+                        value={s.date || ''}
+                        onChange={(val) => onUpdateShootMeta(s.id, 'date', val)}
+                        placeholder="MM/YYYY"
+                      />
+                    </div>
+                    <p className="text-[9px] text-zinc-400 uppercase tracking-tight leading-tight max-w-[120px]">
+                      Required for <span className="text-zinc-600 font-bold">Timeline</span> layout in portfolio.
+                    </p>
+                  </div>
                </div>
                
                <div className="flex items-center space-x-4">
@@ -134,7 +182,7 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
                     className="flex items-center space-x-2 px-4 py-2 bg-zinc-50 hover:bg-zinc-100 rounded-full text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-black transition-colors"
                   >
                      <Tag size={12} />
-                     <span>Edit Credits</span>
+                     <span>Shoot Details</span>
                   </button>
                   {selectedLibraryImages.length > 0 ? (
                       <button 
@@ -242,22 +290,26 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
            files={[]} // No new files
            imageUrls={getShootToEdit()!.images}
            initialData={{
+              name: getShootToEdit()!.name,
               vibes: getShootToEdit()!.vibes,
               photographer: getShootToEdit()!.photographer,
               photographerUrl: getShootToEdit()!.photographerUrl,
               studio: getShootToEdit()!.studio,
-              studioUrl: getShootToEdit()!.studioUrl,
-           }}
-           onConfirm={(meta) => {
-              const sId = editingShootId;
-              // Batch update parent
-              if (meta.vibes !== undefined) onUpdateShootMeta(sId, 'vibes', meta.vibes);
-              if (meta.photographer !== undefined) onUpdateShootMeta(sId, 'photographer', meta.photographer);
-              if (meta.photographerUrl !== undefined) onUpdateShootMeta(sId, 'photographerUrl', meta.photographerUrl);
-              if (meta.studio !== undefined) onUpdateShootMeta(sId, 'studio', meta.studio);
-              if (meta.studioUrl !== undefined) onUpdateShootMeta(sId, 'studioUrl', meta.studioUrl);
-              setEditingShootId(null);
-           }}
+               studioUrl: getShootToEdit()!.studioUrl,
+               date: getShootToEdit()!.date,
+            }}
+            onConfirm={(meta: any) => {
+               const sId = editingShootId;
+               // Batch update parent
+               if (meta.name !== undefined) onUpdateShootName(sId, meta.name);
+               if (meta.vibes !== undefined) onUpdateShootMeta(sId, 'vibes', meta.vibes);
+               if (meta.photographer !== undefined) onUpdateShootMeta(sId, 'photographer', meta.photographer);
+               if (meta.photographerUrl !== undefined) onUpdateShootMeta(sId, 'photographerUrl', meta.photographerUrl);
+               if (meta.studio !== undefined) onUpdateShootMeta(sId, 'studio', meta.studio);
+               if (meta.studioUrl !== undefined) onUpdateShootMeta(sId, 'studioUrl', meta.studioUrl);
+               if (meta.date !== undefined) onUpdateShootMeta(sId, 'date', meta.date);
+               setEditingShootId(null);
+            }}
            onCancel={() => setEditingShootId(null)}
         />
       )}

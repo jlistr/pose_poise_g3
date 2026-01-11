@@ -24,7 +24,17 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   hasNewNotifications
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [shouldJiggle, setShouldJiggle] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Trigger jiggle when new notifications arrive
+  useEffect(() => {
+    if (hasNewNotifications) {
+      setShouldJiggle(true);
+      const timer = setTimeout(() => setShouldJiggle(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasNewNotifications]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,10 +58,10 @@ export const UserMenu: React.FC<UserMenuProps> = ({
       {/* Notification Bell */}
       <button 
         onClick={onOpenNotifications} 
-        className="relative p-2 rounded-full hover:bg-zinc-100 text-zinc-600"
+        className={`relative p-2 rounded-full hover:bg-zinc-100 text-zinc-600 transition-all ${shouldJiggle ? 'animate-jiggle scale-110' : ''}`}
         aria-label="Open notifications"
       >
-        <Bell size={20} />
+        <Bell size={20} className={shouldJiggle ? 'text-indigo-500' : ''} />
         {hasNewNotifications && (
           <div className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
         )}
@@ -129,6 +139,18 @@ export const UserMenu: React.FC<UserMenuProps> = ({
            </div>
         )}
       </div>
+      <style>{`
+        @keyframes jiggle {
+          0% { transform: rotate(0deg); }
+          25% { transform: rotate(15deg); }
+          50% { transform: rotate(-15deg); }
+          75% { transform: rotate(10deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .animate-jiggle {
+          animation: jiggle 0.4s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 };

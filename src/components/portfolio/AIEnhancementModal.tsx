@@ -1,5 +1,6 @@
+```
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Loader2, ArrowUpCircle, CheckCircle2, AlertCircle, Quote, Layout } from 'lucide-react';
+import { X, Sparkles, Wand2, Check, RefreshCw, AlertCircle, Search, Square } from 'lucide-react';
 import { Shoot, Profile } from '@/types';
 import { PortfolioSettings } from './PortfolioRenderer';
 
@@ -55,6 +56,8 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const [isCleaning, setIsCleaning] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
+  const [customInstructions, setCustomInstructions] = useState('');
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (isOpen && !analysis && !isAnalyzing) {
@@ -65,32 +68,51 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const runAnalysis = async () => {
     setIsAnalyzing(true);
     setError(null);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
-      const allImages = shoots.flatMap(s => s.images.filter(url => !s.hiddenImages?.includes(url)));
+      // Analyze the ENTIRE library
+      const allUrls = library.map(i => i.url);
       
       const response = await fetch('/api/enhance-portfolio', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrls: allImages,
-          library, // Pass full library for Active Curator
-          profile,
-          settings
-        })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            imageUrls: allUrls,
+            profile,
+            settings,
+            customInstructions 
+        }),
+        signal: controller.signal
       });
 
       if (!response.ok) {
-        throw new Error('Enhancement request failed');
+        throw new Error('Failed to analyze portfolio');
       }
 
-      const result: AIAnalysis = await response.json();
-      setAnalysis(result);
+      const data: AIAnalysis = await response.json();
+      setAnalysis(data); // Changed from setSuggestions to setAnalysis
     } catch (err: any) {
-      console.error("AI Analysis failed:", err);
-      setError("The AI is currently resting. Please try again in a moment.");
+      if (err.name === 'AbortError') {
+          console.log("Portfolio analysis aborted");
+      } else {
+          console.error('Enhancement error:', err);
+          setError('The AI was unable to curate your library. Please try again or refine your goal.');
+      }
     } finally {
       setIsAnalyzing(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleStopAI = () => {
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+        setIsAnalyzing(false);
     }
   };
 
@@ -139,22 +161,74 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Gemini Pro Vision</p>
               </div>
            </div>
-           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
-              <X size={20} />
-           </button>
+           <div className="flex items-center space-x-2">
+              {analysis && !isAnalyzing && (
+                <button 
+                  onClick={() => {
+                    setHasApplied(false);
+                    runAnalysis();
+                  }}
+                  className="flex items-center space-x-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors border border-indigo-100"
+                >
+                   <Sparkles size={14} />
+                   <span>Regenerate</span>
+                </button>
+              )}
+              <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
+                 <X size={20} />
+              </button>
+           </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-8 space-y-8">
-           {isAnalyzing ? (
-             <div className="py-20 flex flex-col items-center justify-center space-y-4 text-center">
-                <Loader2 size={40} className="text-indigo-500 animate-spin" />
-                <div className="space-y-2">
-                   <p className="text-lg font-serif italic text-zinc-600">Curating the perfect vision...</p>
-                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-300">Analyzing {shoots.length} Collections</p>
-                </div>
-             </div>
-           ) : error ? (
+           {/* Custom Prompt Input Section */}
+           <div className="p-6 bg-indigo-50/50 rounded-[2rem] border border-indigo-100/50 space-y-4">
+              <div className="flex items-center justify-between">
+                 <div className="flex items-center space-x-2 text-indigo-600">
+                    <Wand2 size={18} />
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest">Curation Strategy</h3>
+                 </div>
+                 {isAnalyzing && <RefreshCw size={14} className="text-indigo-400 animate-spin" />}
+              </div>
+              
+              <textarea 
+                 value={customInstructions}
+                 onChange={(e) => setCustomInstructions(e.target.value)}
+                 placeholder="e.g. Group images by outfit color, collections by Street vs Studio, or focus on 'The Blue Dress' themes..."
+                 className="w-full bg-white border border-indigo-100/50 rounded-2xl px-5 py-4 text-sm font-serif focus:outline-none focus:ring-2 focus:ring-indigo-500/10 placeholder:text-zinc-300 min-h-[80px] resize-none transition-all shadow-sm"
+              />
+              
+              <div className="flex justify-end pt-2">
+                 <button 
+                    onClick={() => runAnalysis()}
+                    disabled={isAnalyzing}
+                    className="px-6 py-2.5 bg-indigo-500 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-600 transition-all flex items-center space-x-2 shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+                 >
+                    {isAnalyzing ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    <span>{analysis ? 'Re-Curate with This Goal' : 'Start AI Curation'}</span>
+                 </button>
+              </div>
+           </div>
+
+            {isAnalyzing ? (
+               <div className="flex flex-col items-center justify-center space-y-4 py-12">
+                  <div className="relative">
+                    <RefreshCw className="w-12 h-12 text-zinc-200 animate-spin" />
+                    <Sparkles className="absolute inset-0 m-auto w-5 h-5 text-indigo-500 animate-pulse" />
+                  </div>
+                  <div className="text-center">
+                    <h4 className="font-serif text-xl mb-1 italic">Thinking...</h4>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Curating your creative narrative</p>
+                  </div>
+                  <button 
+                    onClick={handleStopAI}
+                    className="mt-4 px-6 py-2 bg-red-50 text-red-600 border border-red-100 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-red-100 transition-colors flex items-center gap-2"
+                  >
+                    <Square size={12} fill="currentColor" /> Stop Analysis
+                  </button>
+               </div>
+            ) : error ? (
              <div className="py-20 flex flex-col items-center justify-center space-y-4 text-center">
                 <AlertCircle size={40} className="text-red-400" />
                 <p className="text-zinc-500">{error}</p>
@@ -233,47 +307,63 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                    </div>
                 </div>
 
-                {/* Automations Section */}
-                {analysis.suggestedAutomations && !hasApplied && (
-                   <div className="p-8 bg-black border border-zinc-800 rounded-[2rem] space-y-6 shadow-2xl relative overflow-hidden group">
-                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      
-                      <div className="relative z-10 flex items-start space-x-4">
-                         <div className="p-3 bg-white/10 rounded-xl text-indigo-400">
-                             <Layout size={24} />
-                         </div>
-                         <div className="space-y-2 flex-1">
-                            <h3 className="text-white text-sm font-bold uppercase tracking-widest">Apply Design Improvements</h3>
-                            <p className="text-zinc-400 text-xs leading-relaxed">{analysis.suggestedAutomations.rationale}</p>
-                            
-                            <div className="grid grid-cols-2 gap-2 pt-4">
-                               <div className="p-3 bg-zinc-900 rounded-lg text-center">
-                                  <span className="block text-[10px] uppercase text-zinc-500 font-bold">New Hero</span>
-                                  <span className="text-xs text-indigo-300 font-bold">Image #{analysis.suggestedAutomations.heroIndex + 1}</span>
-                               </div>
-                               <div className="p-3 bg-zinc-900 rounded-lg text-center">
-                                  <span className="block text-[10px] uppercase text-zinc-500 font-bold">Highlights</span>
-                                  <span className="text-xs text-purple-300 font-bold">{analysis.suggestedAutomations.highlightIndices.length} Featured</span>
-                               </div>
-                            </div>
-                         </div>
-                      </div>
-
-                      <button 
-                         onClick={handleApplyAutomations}
-                         disabled={isApplying}
-                         className="relative z-10 w-full py-4 bg-white text-black hover:bg-zinc-200 disabled:opacity-50 rounded-xl text-xs font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-3"
-                      >
-                         {isApplying ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                         <span>{isApplying ? 'Applying Layouts...' : 'Apply Changes with AI'}</span>
-                      </button>
-                   </div>
-                )}
-                
                 {hasApplied && (
                    <div className="p-6 bg-green-50 border border-green-100 rounded-[1.5rem] flex items-center justify-center space-x-3 animate-in fade-in zoom-in">
                        <CheckCircle2 size={20} className="text-green-600" />
                        <span className="text-xs font-bold uppercase tracking-widest text-green-800">Changes Applied Successfully</span>
+                   </div>
+                )}
+
+                {/* Curated Collections Section */}
+                {analysis.curatedShoots && !hasApplied && (
+                   <div className="p-8 bg-zinc-50 border border-zinc-100 rounded-[2rem] space-y-6">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                               <Sparkles size={18} />
+                            </div>
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-900">AI Reorganization Plan</h3>
+                         </div>
+                         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{analysis.curatedShoots.length} Sets</span>
+                      </div>
+
+                      <div className="space-y-4">
+                         {analysis.curatedShoots.map((s, i) => (
+                            <div key={i} className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm space-y-3">
+                               <div className="flex justify-between items-start">
+                                  <div>
+                                     <h4 className="text-sm font-serif italic text-indigo-900">{s.name}</h4>
+                                     <p className="text-[10px] text-zinc-400 mt-1">{s.rationale}</p>
+                                  </div>
+                                  <div className="flex -space-x-2">
+                                     {s.images.slice(0, 3).map((img, j) => (
+                                        <div key={j} className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-zinc-100 shadow-sm">
+                                           <img src={img} className="w-full h-full object-cover" />
+                                        </div>
+                                     ))}
+                                     {s.images.length > 3 && (
+                                        <div className="w-8 h-8 rounded-full border-2 border-white bg-zinc-100 flex items-center justify-center text-[8px] font-bold text-zinc-400 shadow-sm">
+                                           +{s.images.length - 3}
+                                        </div>
+                                     )}
+                                  </div>
+                               </div>
+                            </div>
+                         ))}
+                      </div>
+
+                      <button 
+                        onClick={() => {
+                           if (onApplyCuration && analysis.curatedShoots) {
+                              onApplyCuration(analysis.curatedShoots, analysis.heroUrl, analysis.highlightedUrls);
+                              setHasApplied(true);
+                           }
+                        }}
+                        className="w-full py-4 bg-zinc-900 text-white hover:bg-black rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-3 shadow-xl shadow-zinc-900/10"
+                      >
+                         <Sparkles size={16} />
+                         <span>Apply AI Collection Names & Layout</span>
+                      </button>
                    </div>
                 )}
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext'; // <-- IMPORT THE HOOK
-import { signInAnonymously, signOut, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { supabase } from '@/lib/supabase';
 import { upload } from '@vercel/blob/client'; // Import Vercel Blob Client
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -46,7 +46,7 @@ import { NotificationPanel, Notification } from '@/components/ui/NotificationPan
 import { ActionDialog, ActionDialogProps } from '@/components/ui/ActionDialog';
 import { SettingsModal } from '@/components/ui/SettingsModal';
 
-import { auth, db, storage, dataConnect } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { compressImageForCloud, sleep, copyToClipboard } from '@/lib/utils';
 import { Profile, ImageItem, Shoot, CardData } from '@/types';
@@ -67,7 +67,7 @@ const DEFAULT_PROFILE: Profile = {
 
 export default function Home() {
   // --- State ---
-  const { user, loading: authLoading } = useAuth(); // <-- USE THE HOOK
+  const { user, session, loading: authLoading } = useAuth(); // <-- USE THE HOOK
   const [sessionUsername, setSessionUsername] = useState<string | null>(null);
   const [step, setStep] = useState(0); // <-- Start at 0, let effects handle step changes
   const [mode, setMode] = useState<'card' | 'portfolio' | null>(null); 
@@ -123,35 +123,14 @@ export default function Home() {
   // --- handlers ---
 
   const handleLogin = async (username: string) => {
-    try {
-      // Create a deterministic email for the "workstation username"
-      const email = `${username.toLowerCase().replace(/\s+/g, '.')}@posepoise.test`;
-      const password = 'dev-password-123'; // Hardcoded for dev convenience
-
-      try {
-        const cred = await signInWithEmailAndPassword(auth, email, password);
-        // Ensure user exists in Data Connect (Postgres)
-        await createUser(dataConnect, { uid: cred.user.uid, email, now: new Date().toISOString() });
-      } catch (e: any) {
-        if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
-           const cred = await createUserWithEmailAndPassword(auth, email, password);
-           await createUser(dataConnect, { uid: cred.user.uid, email, now: new Date().toISOString() });
-        } else {
-           throw e;
-        }
-      }
-      setSessionUsername(username);
-      // No need to setStep here, the effect watching 'user' will do it.
-    } catch (err) {
-      console.error("Login failed", err);
-      // alert("Connection failed: " + (err as any).message); // Optional
-    }
+     // Auth is handled in Login component or via Supabase Auth State
+     setSessionUsername(username);
   };
 
   const handleAddNotification = async (notification: Omit<Notification, 'id' | 'createdAt'>) => {
     if (!user) return;
     try {
-      await addDoc(collection(db, 'users', user.uid, 'notifications'), {
+      await addDoc(collection(db, 'users', user.id, 'notifications'), {
         ...notification,
         createdAt: new Date(),
       });
@@ -164,7 +143,7 @@ export default function Home() {
   const handleRemoveNotification = async (notificationId: string) => {
     if (!user) return;
     try {
-      await deleteDoc(doc(db, 'users', user.uid, 'notifications', notificationId));
+      await deleteDoc(doc(db, 'users', user.id, 'notifications', notificationId));
       // The onSnapshot listener will update the state automatically.
     } catch (error) {
       console.error("Failed to remove notification:", error);
@@ -175,7 +154,7 @@ export default function Home() {
   const isAssetHashInDB = async (hash: string): Promise<boolean> => {
     if (!user) return false;
     try {
-      const result = await getImagesByHash(dataConnect, { hash: hash });
+      const result = await getImagesByHash({ hash: hash });
       return result.data.images.length > 0;
     } catch (error) {
       console.error("Failed to check asset hash:", JSON.stringify(error, null, 2));
@@ -185,7 +164,7 @@ export default function Home() {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     setSessionUsername(null);
     setImages([]);
     setLibrary([]);
@@ -223,7 +202,7 @@ export default function Home() {
       }
 
       // 3. Delete from Supabase
-      await deleteImage(dataConnect, { id: String(docId) });
+      await deleteImage({ id: String(docId) });
       
       // 4. Update Local State
       setLibrary(prev => prev.filter(img => String(img.id) !== String(docId)));
@@ -245,7 +224,7 @@ export default function Home() {
          setImages(prev => prev.filter(img => !ids.includes(String(img.id))));
 
          // Delete from DB
-         await Promise.all(ids.map(id => deleteImage(dataConnect, { id })));
+         await Promise.all(ids.map(id => deleteImage({ id })));
          
          toast.success(`Pruned ${ids.length} images.`);
       } catch (err) {
@@ -281,7 +260,7 @@ export default function Home() {
       setShoots(newShoots);
 
       // 3. Persist deletions from Library in DB
-      await Promise.all(idsToRemove.map(id => deleteImage(dataConnect, { id })));
+      await Promise.all(idsToRemove.map(id => deleteImage({ id })));
       
       // 4. Update the portfolio in DB using the local override to avoid state races
       await handlePortfolioUpdate(portfolioSettings || DEFAULT_PORTFOLIO_SETTINGS, newShoots);
@@ -371,7 +350,7 @@ export default function Home() {
        // For a proper cleanup, we should delete old shoots.
        
        const oldShootIds = shoots.map(s => String(s.id));
-       await Promise.all(oldShootIds.map(id => deleteShoot(dataConnect, { id })));
+       await Promise.all(oldShootIds.map(id => deleteShoot({ id })));
 
        setShoots(newShoots);
        setPortfolioSettings(newSettings);
@@ -393,10 +372,10 @@ export default function Home() {
     try {
        // 1. Delete all shoots
        const allShoots = shoots; // already have them in state
-       await Promise.all(allShoots.map(s => deleteShoot(dataConnect, { id: String(s.id) })));
+       await Promise.all(allShoots.map(s => deleteShoot({ id: String(s.id) })));
 
        // 2. Delete Portfolio Record (so it appears as "New" / "Launch Builder")
-       await deletePortfolio(dataConnect, { uid: user.uid });
+       await deletePortfolio({ uid: user.id });
 
        // 3. Update Local State
        setShoots([{ id: uuidv4(), name: 'Main Shoot', images: [], vibes: [] }]);
@@ -415,7 +394,7 @@ export default function Home() {
     if (!user) return;
     try {
       // 1. Fetch all cards (if not already fully synced, better to fetch fresh)
-      const result = await getCompCards(dataConnect, { uid: user.uid });
+      const result = await getCompCards({ uid: user.id });
       const cards = result.data.compCards;
 
       if (cards.length === 0) {
@@ -424,7 +403,7 @@ export default function Home() {
       }
 
       // 2. Delete all
-      await Promise.all(cards.map((c: any) => deleteCompCard(dataConnect, { id: c.id })));
+      await Promise.all(cards.map((c: any) => deleteCompCard({ id: c.id })));
 
       // 3. Update Local State
       setSavedCards([]);
@@ -470,7 +449,7 @@ export default function Home() {
     try {
       // The hash is now calculated and passed in from the component
       const imageHash = fileHash || await calculateFileHash(file);
-      const token = await user.getIdToken();
+      const token = session?.access_token || '';
 
       // Manually handle filename uniqueness since `addRandomSuffix` is simpler server-side
       // Manually handle filename uniqueness with UUID to absolutely prevent 409 Conflicts
@@ -479,7 +458,7 @@ export default function Home() {
         access: 'public',
         handleUploadUrl: `/api/upload?auth=${token}`,
         clientPayload: JSON.stringify({
-            userId: user.uid,
+            userId: user.id,
             imageHash,
             contentType: file.type
         }),
@@ -494,9 +473,9 @@ export default function Home() {
           const fileId = crypto.randomUUID(); 
 
           // 1. Save to User's Library (Data Connect)
-          await upsertImage(dataConnect, {
+          await upsertImage({
               id: fileId,
-              uid: user.uid,
+              uid: user.id,
               url: downloadURL,
               // path: blob.pathname, // Field might not exist in Data Connect schema check
               // contentType: file.type, // Field might not exist
@@ -548,8 +527,8 @@ export default function Home() {
     try {
       setProfile(newProfile);
       // Migrate to Data Connect
-      await upsertProfile(dataConnect, {
-        uid: user.uid,
+      await upsertProfile({
+        uid: user.id,
         name: newProfile.name,
         instagram: newProfile.instagram,
         height: newProfile.height,
@@ -565,7 +544,7 @@ export default function Home() {
         careerGoals: newProfile.careerGoals || null
       });
       // Legacy Firestore for safety/backup (Optional, removed to force switch)
-      // await setDoc(doc(db, 'users', user.uid, 'profile', 'data'), newProfile);
+      // await setDoc(doc(db, 'users', user.id, 'profile', 'data'), newProfile);
     } catch (err) {
       console.error("Profile save error:", err);
     }
@@ -574,7 +553,7 @@ export default function Home() {
   const deleteCard = async (docId: string) => {
      if (!user) return;
      try {
-        await deleteDoc(doc(db, 'users', user.uid, 'cards', docId));
+        await deleteDoc(doc(db, 'users', user.id, 'cards', docId));
      } catch (err) {
         console.error("Error deleting card:", err);
      }
@@ -597,8 +576,27 @@ export default function Home() {
     const { files, context, shootId } = uploadQueue;
     setUploadQueue(null); // Close modal
 
+    // Apply metadata to local state immediately if in shoot context
+    if (context === 'shoot' && shootId) {
+        setShoots(prev => prev.map(s => {
+            if (String(s.id) === String(shootId)) {
+                return {
+                    ...s,
+                    name: (metadata as any).name || s.name,
+                    vibes: Array.from(new Set([...(s.vibes || []), ...(metadata.vibes || [])])),
+                    photographer: metadata.photographer || s.photographer,
+                    photographerUrl: metadata.photographerUrl || s.photographerUrl,
+                    studio: metadata.studio || s.studio,
+                    studioUrl: metadata.studioUrl || s.studioUrl,
+                    date: (metadata as any).date || s.date,
+                };
+            }
+            return s;
+        }));
+    }
+
     try {
-        const token = await user.getIdToken();
+        const token = session?.access_token || '';
         
         for (const file of files) {
           const toastId = toast.loading(`Uploading "${file.name}"...`);
@@ -621,7 +619,7 @@ export default function Home() {
                  // Ideally we'd fetch the existing record here.
                  // For speed/safety in this fix, I'll rely on the user adding from library if it exists.
                  // Or I can query it. 
-                 const existingRes = await getImagesByHash(dataConnect, { hash: imageHash });
+                 const existingRes = await getImagesByHash({ hash: imageHash });
                  if (existingRes.data.images.length > 0) {
                      downloadURL = existingRes.data.images[0].url;
                      fileId = existingRes.data.images[0].id;
@@ -633,7 +631,7 @@ export default function Home() {
                   access: 'public',
                   handleUploadUrl: `/api/upload?auth=${token}`,
                   clientPayload: JSON.stringify({
-                      userId: user.uid,
+                      userId: user.id,
                       imageHash,
                       contentType: file.type
                   })
@@ -644,9 +642,9 @@ export default function Home() {
                     fileId = crypto.randomUUID();
                     
                     // Index in Supabase
-                    await upsertImage(dataConnect, {
+                    await upsertImage({
                         id: fileId,
-                        uid: user.uid,
+                        uid: user.id,
                         url: downloadURL,
                         now: new Date().toISOString()
                     });
@@ -661,18 +659,73 @@ export default function Home() {
                 // If Context is Shoot, link it!
                 if (context === 'shoot' && shootId) {
                     // 1. Add to Shoot in DB
-                    // Calculate order (append to end)
                     const currentShoot = shoots.find(s => String(s.id) === String(shootId));
                     const nextOrder = currentShoot ? currentShoot.images.length : 0;
                     
-                    await addImageToShoot(dataConnect, {
+                    // CRITICAL: Ensure portfolio and shoot exist in Supabase (RLS & FK Fix)
+                    if (currentShoot) {
+                        // 1. Ensure Portfolio row exists
+                        await upsertPortfolio({
+                            id: user.id,
+                            uid: user.id,
+                            settings: JSON.stringify(portfolioSettings || DEFAULT_PORTFOLIO_SETTINGS),
+                            isPublic: isPortfolioPublic,
+                            now: new Date().toISOString()
+                        });
+
+                        // 2. Ensure Shoot row exists
+                        await upsertShoot({
+                            id: String(shootId),
+                            portfolioId: user.id,
+                            name: currentShoot.name,
+                            vibes: (currentShoot.vibes || []).join(','),
+                            photographer: currentShoot.photographer || '',
+                            studio: currentShoot.studio || '',
+                            date: currentShoot.date,
+                            now: new Date().toISOString()
+                        });
+                    }
+
+                    await addImageToShoot({
                         shootId: String(shootId),
                         imageId: fileId,
                         order: nextOrder,
                         isVisible: true
                     });
 
-                    // 2. Update Local State
+                    // 2. AI Auto-Tagging
+                    // Optimistically analyze image for vibes
+                    fetch('/api/analyze-image', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ imageUrl: downloadURL })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.vibes && Array.isArray(data.vibes)) {
+                           // Update local state with new vibes
+                           setShoots(prev => prev.map(s => {
+                               if (String(s.id) === String(shootId)) {
+                                   const existing = new Set(s.vibes || []);
+                                   data.vibes.forEach((v: string) => existing.add(v));
+                                   return { ...s, vibes: Array.from(existing) };
+                               }
+                               return s;
+                           }));
+                           
+                           // Also update DB asynchronously
+                           // We need to fetch the LATEST set of vibes to be safe, but here we just append local result
+                           // Ideally call upsertShoot with merged vibes.
+                           // For now, let local state drive the UI and assume user hits "Save" later or we auto-save here?
+                           // The app seems to sync state via specific actions. 
+                           // Let's trigger a meta update if possible or just rely on local state until next save.
+                           // Actually, let's toast!
+                           toast.success(`AI Link: Tagged as ${data.vibes.join(', ')}`);
+                        }
+                    })
+                    .catch(err => console.error("Auto-tagging failed", err));
+
+                    // 3. Update Local State (Images)
                     setShoots(prev => prev.map(s => {
                         if (String(s.id) === String(shootId)) {
                             // Avoid duplicates in local state
@@ -715,7 +768,7 @@ export default function Home() {
 
   const handleAddImagesToShoot = (shootId: string | number, imageUrls: string[]) => {
     setShoots(prev => prev.map(s => {
-      if (s.id === shootId) {
+      if (String(s.id) === String(shootId)) {
         // Filter out duplicates if any (optional, but good UX)
         const newImages = imageUrls.filter(url => !s.images.includes(url));
         if (newImages.length === 0) return s;
@@ -813,9 +866,9 @@ export default function Home() {
 
       let userCardRef;
       if (currentCardId) {
-          userCardRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'compositeCards', currentCardId);
+          userCardRef = doc(db, 'artifacts', APP_ID, 'users', user.id, 'compositeCards', currentCardId);
       } else {
-          userCardRef = doc(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'compositeCards'));
+          userCardRef = doc(collection(db, 'artifacts', APP_ID, 'users', user.id, 'compositeCards'));
       }
 
       await setDoc(userCardRef, { ...cardData, id: userCardRef.id });
@@ -835,10 +888,16 @@ export default function Home() {
   const handlePortfolioUpdate = async (settings: PortfolioSettings, shootsOverride?: Shoot[]) => {
     if (!user) return;
     const activeShoots = shootsOverride || shoots;
+    
+    // Determine Portfolio ID (User ID is the identifier for the single portfolio)
+    const currentPortfolioId = user.id;
+    if (!portfolioId) setPortfolioId(currentPortfolioId);
+
     try {
        // 1. Update Portfolio Record
-       await upsertPortfolio(dataConnect, {
-         uid: user.uid,
+       await upsertPortfolio({
+         id: currentPortfolioId,
+         uid: user.id,
          settings: JSON.stringify(settings),
          isPublic: isPortfolioPublic,
          now: new Date().toISOString()
@@ -848,17 +907,18 @@ export default function Home() {
        // Create a lookup map for Image URLs to IDs from the loaded library
        const urlToId = new Map(library.map(img => [img.url, String(img.id)]));
 
-       for (const shoot of shoots) {
+       for (const shoot of activeShoots) {
           let shootId = String(shoot.id);
           // Ensure shoot ID is UUID compliant if needed (assumed handled by handleAddShoot)
 
-          await upsertShoot(dataConnect, {
+          await upsertShoot({
              id: shootId,
-             uid: user.uid,
+             portfolioId: currentPortfolioId,
              name: shoot.name,
              vibes: shoot.vibes ? shoot.vibes.join(',') : '',
              photographer: shoot.photographer || '',
              studio: shoot.studio || '',
+             date: shoot.date || '',
              now: new Date().toISOString()
           });
 
@@ -871,9 +931,9 @@ export default function Home() {
                 if (!imgId) {
                    console.warn("Image not found in library, creating new record:", url);
                    imgId = uuidv4();
-                   await upsertImage(dataConnect, {
+                   await upsertImage({
                       id: imgId,
-                      uid: user.uid,
+                      uid: user.id,
                       url: url,
                       now: new Date().toISOString()
                    });
@@ -881,7 +941,7 @@ export default function Home() {
                 }
 
                 // Link Image to Shoot
-                await addImageToShoot(dataConnect, {
+                await addImageToShoot({
                    shootId: shootId,
                    imageId: imgId,
                    order: i,
@@ -903,12 +963,12 @@ export default function Home() {
   const handlePortfolioPublish = async (isPublic: boolean) => {
      if (!user) return;
      try {
-        const publicRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'portfolio', 'meta');
+        const publicRef = doc(db, 'artifacts', APP_ID, 'users', user.id, 'portfolio', 'meta');
         await setDoc(publicRef, { isPublic }, { merge: true });
         
         // Also update the public collection
         if (isPublic) {
-           const publicId = portfolioId || user.uid;
+           const publicId = portfolioId || user.id;
            setPortfolioId(publicId);
            await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'portfolios', publicId), {
               username: sessionUsername,
@@ -989,12 +1049,12 @@ export default function Home() {
       try {
         // Ensure User Record Exists in Supabase (Sync Auth -> DB)
         // This prevents FK errors if the DB was reset but Auth persists
-        await createUser(dataConnect, { 
-            uid: user.uid, 
-            email: user.email || `anon-${user.uid}@test.com` 
+        await createUser({ 
+            uid: user.id, 
+            email: user.email || `anon-${user.id}@test.com` 
         });
 
-        const response = await getProfile(dataConnect, { uid: user.uid });
+        const response = await getProfile({ uid: user.id });
         if (response.data.profiles.length > 0) {
            const p = response.data.profiles[0];
            setProfile({
@@ -1019,14 +1079,14 @@ export default function Home() {
     };
     loadProfile();
 
-    const unsubCards = onSnapshot(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'compositeCards'), (snapshot) => {
+    const unsubCards = onSnapshot(collection(db, 'artifacts', APP_ID, 'users', user.id, 'compositeCards'), (snapshot) => {
       setSavedCards(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CardData)));
     });
 
     // Load Library via Data Connect
     const loadLibrary = async () => {
         try {
-           const res = await getLibrary(dataConnect, { uid: user.uid });
+           const res = await getLibrary({ uid: user.id });
            setLibrary(res.data.images.map(img => ({
                id: img.id,
                url: img.url,
@@ -1039,7 +1099,7 @@ export default function Home() {
     loadLibrary();
     // Legacy onSnapshot removed
     /*
-    const unsubLibrary = onSnapshot(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'library'), (snapshot) => {
+    const unsubLibrary = onSnapshot(collection(db, 'artifacts', APP_ID, 'users', user.id, 'library'), (snapshot) => {
       setLibrary(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ImageItem)));
     });
     */
@@ -1048,9 +1108,9 @@ export default function Home() {
     const loadPortfolio = async () => {
        try {
           // 1. Get Portfolio Settings
-          const portRes = await getPortfolio(dataConnect, { uid: user.uid });
-          if (portRes.data.portfolio) {
-              const p = portRes.data.portfolio;
+          const portRes = await getPortfolio({ uid: user.id });
+          if (portRes.data.portfolios.length > 0) {
+              const p = portRes.data.portfolios[0];
               if (p.settings) {
                   try {
                       // Handle double stringification or direct object
@@ -1060,16 +1120,17 @@ export default function Home() {
                       console.warn("Failed to parse portfolio settings", e);
                   }
               }
-              setIsPortfolioPublic(p.is_public);
-              setPortfolioId(user.uid);
+              setIsPortfolioPublic(p.isPublic);
+              setPortfolioId(p.id);
+          } else {
+             setPortfolioId(null);
           }
 
           // 2. Get Shoots
-          const shootsRes = await getShootsForPortfolio(dataConnect, { portfolio: user.uid });
+          const shootsRes = await getShootsForPortfolio({ uid: user.id });
           if (shootsRes.data.shoots && shootsRes.data.shoots.length > 0) {
               setShoots(shootsRes.data.shoots);
           } else {
-              // Default if no shoots found (new user?)
               setShoots([{ id: uuidv4(), name: 'Main Shoot', images: [], vibes: [] }]);
           }
 
@@ -1081,7 +1142,7 @@ export default function Home() {
 
     // Fetch Notifications in real-time
     const unsubNotifications = onSnapshot(
-      collection(db, 'users', user.uid, 'notifications'),
+      collection(db, 'users', user.id, 'notifications'),
       (snapshot) => {
         const serverNotifications: Notification[] = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -1148,7 +1209,7 @@ export default function Home() {
             <UserMenu 
                user={{ 
                    displayName: profile.name || sessionUsername, 
-                   email: user.isAnonymous ? 'Guest User' : user.uid,
+                   email: user.is_anonymous ? 'Guest User' : user.id,
                    photoURL: profile.avatar || null
                }}
                onSignOut={handleLogout}
@@ -1197,7 +1258,7 @@ export default function Home() {
         {step === 0 && user && (
           <Landing 
             username={sessionUsername || ''} 
-            uid={user?.uid || ''}
+            uid={user?.id || ''}
             profile={profile}
             library={library} 
             savedCards={savedCards}
@@ -1222,7 +1283,7 @@ export default function Home() {
                    confirmText: 'Delete Forever',
                    onConfirm: async () => {
                        try {
-                          await deleteDoc(doc(db, 'artifacts', APP_ID, 'users', user.uid, 'compositeCards', id));
+                          await deleteDoc(doc(db, 'artifacts', APP_ID, 'users', user.id, 'compositeCards', id));
                           await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'compositeCards', id));
                           toast.success("Card Deleted");
                           if (currentCardId === id) {
@@ -1477,7 +1538,8 @@ export default function Home() {
       {isProfileOpen && (
            <ProfileModal 
               initialProfile={profile} 
-              uid={user?.uid}
+              uid={user?.id}
+              token={session?.access_token}
               libraryImages={library}
               onSave={async (p) => {
                 await saveProfile(p);
@@ -1518,7 +1580,7 @@ export default function Home() {
                      if (!existingUrls.has(blob.url)) {
                          await upsertImage(dataConnect, {
                              id: crypto.randomUUID(),
-                             uid: user.uid,
+                             uid: user.id,
                              url: blob.url,
                              now: new Date().toISOString()
                          });

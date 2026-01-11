@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Camera, MapPin, Instagram } from 'lucide-react';
+import { X, Sparkles, Camera, MapPin, Instagram, Calendar, Square } from 'lucide-react';
 import { ImageItem } from '@/types';
 import { VIBE_TAGS } from '@/constants';
+import { ModernDatePicker } from './ModernDatePicker';
 
 interface MetadataUploadModalProps {
   files?: File[];
   imageUrls?: string[]; // For editing existing
-  initialData?: Partial<ImageItem>; 
-  onConfirm: (metadata: Partial<ImageItem>) => void;
+  initialData?: Partial<ImageItem> & { name?: string, date?: string }; 
+  onConfirm: (metadata: Partial<ImageItem> & { name?: string, date?: string }) => void;
   onCancel: () => void;
 }
 
@@ -20,10 +21,15 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
 }) => {
   const [vibes, setVibes] = useState<string[]>(initialData.vibes || []);
   const [customTag, setCustomTag] = useState('');
+  const [shootName, setShootName] = useState(initialData.name || '');
+  const [suggestedName, setSuggestedName] = useState<string | null>(null);
   const [photographer, setPhotographer] = useState(initialData.photographer || '');
   const [photographerUrl, setPhotographerUrl] = useState(initialData.photographerUrl || '');
   const [studio, setStudio] = useState(initialData.studio || '');
   const [studioUrl, setStudioUrl] = useState(initialData.studioUrl || '');
+  const [date, setDate] = useState(initialData.date || '');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   const count = files.length + imageUrls.length;
 
@@ -44,12 +50,23 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onConfirm({
+      name: shootName,
       vibes,
       photographer,
       photographerUrl,
       studio,
-      studioUrl
+      studioUrl,
+      date
     });
+  };
+
+  const handleStopAI = () => {
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+        setIsAnalyzing(false);
+        (window as any).toast?.info("AI analysis stopped.");
+    }
   };
 
   // Create previews safely
@@ -72,7 +89,7 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
         <div className="p-8 border-b border-zinc-50 flex justify-between items-center">
            <div>
              <h3 className="font-serif text-2xl">
-               {files.length > 0 ? 'Add Credits' : 'Edit Credits'}
+               {files.length > 0 ? 'Add Collection Details' : 'Shoot Details'}
              </h3>
              <p className="text-xs text-zinc-400 uppercase tracking-widest mt-1">
                 Applying to {count} selected {count === 1 ? 'image' : 'images'}
@@ -102,110 +119,225 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
               )}
            </div>
 
-            {/* Vibes */}
-            <div className="space-y-3">
-               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                  <Sparkles size={12} /> Vibe / Tags
-               </label>
-               <div className="flex flex-wrap gap-2">
-                  {VIBE_TAGS.map(tag => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => toggleVibe(tag)}
-                      className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
-                        vibes.includes(tag)
-                          ? 'bg-black text-white border-black'
-                          : 'bg-white text-zinc-400 border-zinc-200 hover:border-black hover:text-black'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-
-                  {/* Custom Tags that aren't in VIBE_TAGS */}
-                  {vibes.filter(v => !VIBE_TAGS.includes(v)).map(tag => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => toggleVibe(tag)}
-                      className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border bg-zinc-900 text-white border-zinc-900 group"
-                    >
-                      {tag} <X size={10} className="inline ml-1 opacity-50 group-hover:opacity-100" />
-                    </button>
-                  ))}
-               </div>
-
-               {/* Custom Tag Input */}
-               <div className="mt-4">
-                  <input 
-                    value={customTag}
-                    onChange={(e) => setCustomTag(e.target.value)}
-                    onKeyDown={addCustomTag}
-                    className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 placeholder:text-zinc-300"
-                    placeholder="Type custom tag + Enter..."
-                  />
+            {/* Shoot Name */}
+            <div className="space-y-2">
+               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Shoot / Collection Name</label>
+               <div className="relative">
+                   <input 
+                       value={shootName}
+                       onChange={(e) => {
+                           setShootName(e.target.value);
+                           setSuggestedName(null);
+                       }}
+                       className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm font-serif focus:outline-none focus:ring-2 focus:ring-black/5 placeholder:text-zinc-300"
+                       placeholder="e.g. Cinema Verité"
+                   />
+                   {suggestedName && (
+                       <div className="mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2">
+                           <div className="flex items-center gap-2">
+                               <Sparkles size={14} className="text-indigo-500" />
+                               <span className="text-[10px] font-bold uppercase tracking-tight text-indigo-900">Suggested: <span className="italic">"{suggestedName}"</span></span>
+                           </div>
+                           <button 
+                               type="button"
+                               onClick={() => {
+                                   setShootName(suggestedName);
+                                   setSuggestedName(null);
+                               }}
+                               className="px-3 py-1 bg-indigo-500 text-white text-[9px] font-bold uppercase tracking-widest rounded-full hover:bg-indigo-600 transition-colors"
+                           >
+                               Apply
+                           </button>
+                       </div>
+                   )}
                </div>
             </div>
 
-           {/* Photographer */}
-           <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                 <Camera size={12} /> Photographer
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                 <input 
-                    value={photographer}
-                    onChange={(e) => setPhotographer(e.target.value)}
-                    className="bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    placeholder="Name"
-                 />
-                 <div className="relative">
-                    <Instagram size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-300" />
-                    <input 
-                       value={photographerUrl}
-                       onChange={(e) => setPhotographerUrl(e.target.value)}
-                       className="w-full bg-zinc-50 border border-zinc-100 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                       placeholder="Handle"
-                    />
-                 </div>
-              </div>
-           </div>
+            {/* Vibes */}
+            <div className="space-y-3">
+               <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                     <Sparkles size={12} /> Vibe / Tags
+                  </label>
+                  {isAnalyzing ? (
+                      <button 
+                        type="button"
+                        onClick={handleStopAI}
+                        className="text-[10px] font-bold uppercase tracking-widest text-red-500 hover:text-red-600 flex items-center gap-1 transition-colors"
+                      >
+                         <Square size={10} fill="currentColor" /> Stop AI
+                      </button>
+                  ) : (
+                      <button 
+                        type="button"
+                        onClick={async () => {
+                           const toastId = (window as any).toast?.loading("Analyzing image vibes...");
+                           setIsAnalyzing(true);
+                           const controller = new AbortController();
+                           abortControllerRef.current = controller;
+                           
+                           try {
+                               let payload = {};
+                               if (imageUrls.length > 0) {
+                                    payload = { imageUrl: imageUrls[0] };
+                               } else if (files.length > 0) {
+                                    const file = files[0];
+                                    const reader = new FileReader();
+                                    const base64 = await new Promise((resolve) => {
+                                        reader.onload = (e) => resolve(e.target?.result);
+                                        reader.readAsDataURL(file);
+                                    });
+                                    payload = { imageBase64: base64 };
+                               } else {
+                                    setIsAnalyzing(false);
+                                    return;
+                               }
+                               
+                               const res = await fetch('/api/analyze-image', {
+                                   method: 'POST',
+                                   body: JSON.stringify(payload),
+                                   signal: controller.signal
+                                });
+                                
+                                if (!res.ok) throw new Error("Request failed");
+                                
+                                const data = await res.json();
+                                if (data.vibes) {
+                                    setVibes(prev => Array.from(new Set([...prev, ...data.vibes])));
+                                    if (data.suggestedName && data.suggestedName !== shootName) {
+                                        setSuggestedName(data.suggestedName);
+                                    }
+                                    (window as any).toast?.success("Analysis complete!", { id: toastId });
+                                }
+                            } catch (e: any) {
+                                if (e.name === 'AbortError') {
+                                    console.log("Analysis aborted");
+                                } else {
+                                    console.error(e);
+                                    (window as any).toast?.error("Failed to analyze", { id: toastId });
+                                }
+                            } finally {
+                                setIsAnalyzing(false);
+                                abortControllerRef.current = null;
+                            }
+                         }}
+                         className="text-[10px] font-bold uppercase tracking-widest text-purple-500 hover:text-purple-600 flex items-center gap-1 transition-colors"
+                      >
+                         <Sparkles size={10} /> Auto-Suggest
+                      </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                   {VIBE_TAGS.map(tag => (
+                     <button
+                       key={tag}
+                       type="button"
+                       onClick={() => toggleVibe(tag)}
+                       className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
+                         vibes.includes(tag)
+                           ? 'bg-black text-white border-black'
+                           : 'bg-white text-zinc-400 border-zinc-200 hover:border-black hover:text-black'
+                       }`}
+                     >
+                       {tag}
+                     </button>
+                   ))}
+ 
+                   {/* Custom Tags that aren't in VIBE_TAGS */}
+                   {vibes.filter(v => !VIBE_TAGS.includes(v)).map(tag => (
+                     <button
+                       key={tag}
+                       type="button"
+                       onClick={() => toggleVibe(tag)}
+                       className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border bg-zinc-900 text-white border-zinc-900 group"
+                     >
+                       {tag} <X size={10} className="inline ml-1 opacity-50 group-hover:opacity-100" />
+                     </button>
+                   ))}
+                </div>
+ 
+                {/* Custom Tag Input */}
+                <div className="mt-4">
+                   <input 
+                     value={customTag}
+                     onChange={(e) => setCustomTag(e.target.value)}
+                     onKeyDown={addCustomTag}
+                     className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 placeholder:text-zinc-300"
+                     placeholder="Type custom tag + Enter..."
+                   />
+                </div>
+             </div>
 
-           {/* Studio */}
-           <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                 <MapPin size={12} /> Studio / Location
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                 <input 
-                    value={studio}
-                    onChange={(e) => setStudio(e.target.value)}
-                    className="bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    placeholder="Name"
-                 />
-                 <div className="relative">
-                    <Instagram size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-300" />
-                    <input 
-                       value={studioUrl}
-                       onChange={(e) => setStudioUrl(e.target.value)}
-                       className="w-full bg-zinc-50 border border-zinc-100 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                       placeholder="Handle"
-                    />
-                 </div>
-              </div>
-           </div>
-        
-           <div className="pt-4">
-              <button 
-                 type="submit"
-                 className="w-full bg-black text-white font-bold uppercase tracking-widest py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl"
-              >
-                 {files.length > 0 ? 'Upload & Save Credits' : 'Update Credits'}
-              </button>
-           </div>
-        </form>
-      </div>
-    </div>
-  );
-};
+             {/* Shoot Date */}
+             <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                   <Calendar size={12} /> Shoot Date
+                </label>
+                <ModernDatePicker 
+                    value={date}
+                    onChange={setDate}
+                    placeholder="Select Date (MM/YYYY or MM/DD/YYYY)"
+                />
+             </div>
+ 
+            {/* Photographer */}
+            <div className="space-y-2">
+               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                  <Camera size={12} /> Photographer
+               </label>
+               <div className="grid grid-cols-2 gap-4">
+                  <input 
+                     value={photographer}
+                     onChange={(e) => setPhotographer(e.target.value)}
+                     className="bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                     placeholder="Name"
+                  />
+                  <div className="relative">
+                     <Instagram size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-300" />
+                     <input 
+                        value={photographerUrl}
+                        onChange={(e) => setPhotographerUrl(e.target.value)}
+                        className="w-full bg-zinc-50 border border-zinc-100 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                        placeholder="Handle"
+                     />
+                  </div>
+               </div>
+            </div>
+ 
+            {/* Studio */}
+            <div className="space-y-2">
+               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                  <MapPin size={12} /> Studio / Location
+               </label>
+               <div className="grid grid-cols-2 gap-4">
+                  <input 
+                     value={studio}
+                     onChange={(e) => setStudio(e.target.value)}
+                     className="bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                     placeholder="Name"
+                  />
+                  <div className="relative">
+                     <Instagram size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-300" />
+                     <input 
+                        value={studioUrl}
+                        onChange={(e) => setStudioUrl(e.target.value)}
+                        className="w-full bg-zinc-50 border border-zinc-100 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                        placeholder="Handle"
+                     />
+                  </div>
+               </div>
+            </div>
+         
+            <div className="pt-4">
+               <button 
+                  type="submit"
+                  className="w-full bg-black text-white font-bold uppercase tracking-widest py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl"
+               >
+                  {files.length > 0 ? 'Upload & Save Details' : 'Update Shoot Details'}
+               </button>
+            </div>
+         </form>
+       </div>
+     </div>
+   );
+ };

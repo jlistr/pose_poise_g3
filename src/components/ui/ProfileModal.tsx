@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { X, Ruler, User, Instagram, Camera, Upload, Sparkles } from 'lucide-react';
 import { upload } from '@vercel/blob/client';
-// Removed: import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-// Removed: import { storage } from '@/lib/firebase';
-import { auth } from '@/lib/firebase'; // Ensure we have auth for token
-import { storage } from '@/lib/firebase';
 import { SocialIntegrations } from '@/components/ui/SocialIntegrations';
 import { Profile, ImageItem } from '@/types';
 import { toast } from 'sonner';
@@ -12,12 +8,13 @@ import { toast } from 'sonner';
 interface ProfileModalProps {
   initialProfile: Profile;
   uid?: string;
+  token?: string;
   libraryImages?: ImageItem[];
   onSave: (profile: Profile) => Promise<void> | void;
   onClose: () => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ initialProfile, uid, libraryImages = [], onSave, onClose }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ initialProfile, uid, token, libraryImages = [], onSave, onClose }) => {
   const [profile, setProfile] = useState<Profile>(initialProfile);
   const [isGenerating, setIsGenerating] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -85,16 +82,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ initialProfile, uid,
             // Manually handle filename uniqueness
             const uniqueFilename = `${crypto.randomUUID()}-${avatarFile.name}`;
             
-            // Note: We need a valid token for the API. 
-            // Since we don't have direct access to `auth.currentUser.getIdToken()` here easily 
-            // (unless we import `auth` from lib/firebase or pass it down),
-            // I will use `import { auth } from '@/lib/firebase';` which is available globally.
-            
-            // Get fresh token
-            const token = await import('@/lib/firebase').then(m => m.auth.currentUser?.getIdToken());
-            
-            if (!token) throw new Error("Not authenticated");
-
             const blob = await upload(uniqueFilename, avatarFile, {
                 access: 'public',
                 handleUploadUrl: `/api/upload?auth=${token}`,

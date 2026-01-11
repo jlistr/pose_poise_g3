@@ -39,23 +39,121 @@ const PortfolioPreview: React.FC<{
 }> = ({ shoots, settings, profile }) => {
   const allImages = shoots.flatMap(s => 
     s.images.filter(url => !s.hiddenImages?.includes(url))
-  ).slice(0, 12); 
+  ).slice(0, 10); 
 
   return (
-    <div className="w-[1200px] h-[800px] bg-white rounded-[4rem] shadow-[0_50px_120px_rgba(0,0,0,0.4)] relative overflow-hidden flex flex-col pointer-events-none origin-top border border-white/40" style={{ transform: 'scale(0.28)' }}>
-       {/* Minimal Branded Header */}
-       <div className="pt-20 pb-12 px-12 text-center">
-          <h2 className="text-6xl font-serif uppercase tracking-[0.3em] text-zinc-900 mb-4 whitespace-nowrap">{profile.name || "MODEL"}</h2>
-          <div className="h-1.5 w-32 bg-black/5 mx-auto rounded-full" />
+    <div className="w-[1240px] h-[900px] bg-[#f9f8f6] rounded-[4rem] shadow-[0_50px_120px_rgba(0,0,0,0.4)] relative overflow-hidden flex pointer-events-none origin-top border border-white/40 mb-[-620px]" style={{ transform: 'scale(0.32)' }}>
+       {/* Identity Column */}
+       <div className="w-[450px] h-full bg-white border-r border-[#eceae5] p-24 flex flex-col justify-between">
+          <div className="space-y-12">
+             <div className="space-y-4">
+                <span className="text-[14px] font-bold uppercase tracking-[0.4em] text-[#c4b9a3]">Identity</span>
+                <h2 className="text-7xl font-serif uppercase tracking-tighter text-black leading-[0.9]">{profile.name || "MODEL"}</h2>
+             </div>
+             
+             <div className="h-px w-20 bg-black/10" />
+
+             <div className="grid grid-cols-2 gap-y-10 gap-x-8 text-[12px] font-bold uppercase tracking-widest text-zinc-400">
+                <div className="space-y-1">
+                   <p className="text-[#c4b9a3]">Height</p>
+                   <p className="text-black text-lg font-serif italic normal-case">{profile.height || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                   <p className="text-[#c4b9a3]">Bust</p>
+                   <p className="text-black text-lg font-serif italic normal-case">{profile.bust || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                   <p className="text-[#c4b9a3]">Waist</p>
+                   <p className="text-black text-lg font-serif italic normal-case">{profile.waist || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                   <p className="text-[#c4b9a3]">Hips</p>
+                   <p className="text-black text-lg font-serif italic normal-case">{profile.hips || "—"}</p>
+                </div>
+             </div>
+          </div>
+
+          <div className="space-y-4">
+             <div className="p-6 bg-[#f9f8f6] rounded-3xl border border-[#eceae5]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c4b9a3] mb-2">Primary Aesthetic</p>
+                <p className="text-xl font-serif italic text-black">Editorial Archive</p>
+             </div>
+             <p className="text-[11px] text-zinc-300 font-bold uppercase tracking-[0.3em]">Pose & Poise • Vol 1</p>
+          </div>
        </div>
 
-       {/* Image Grid */}
-       <div className="px-20 pb-20 grid grid-cols-6 gap-6 flex-1 overflow-hidden">
-             {allImages.map((img, i) => (
-               <div key={i} className="aspect-[3/4] bg-zinc-50 rounded-[2.5rem] overflow-hidden shadow-inner border border-zinc-100">
-                  <img src={img} className="w-full h-full object-cover" />
-               </div>
+       {/* Staggered Grid Column */}
+       <div className="flex-1 h-full p-20 flex gap-8">
+          <div className="flex-1 space-y-8 flex flex-col pt-24">
+             {allImages.slice(0, 2).map((img, i) => (
+                <div key={i} className="aspect-[3/4.5] bg-zinc-100 rounded-[3rem] overflow-hidden shadow-2xl border border-white/20">
+                   <img src={img} className="w-full h-full object-cover" />
+                </div>
              ))}
+          </div>
+          <div className="flex-1 space-y-8 flex flex-col">
+             {allImages.slice(2, 4).map((img, i) => (
+                <div key={i} className="aspect-[3/4] bg-zinc-100 rounded-[3rem] overflow-hidden shadow-2xl border border-white/20">
+                   <img src={img} className="w-full h-full object-cover" />
+                </div>
+             ))}
+             <div className="flex-1 bg-black/5 rounded-[3rem] border border-dashed border-black/10 flex items-center justify-center">
+                <p className="text-4xl font-serif italic text-black/10">Archive</p>
+             </div>
+          </div>
+          <div className="flex-1 space-y-8 flex flex-col pt-48">
+             {allImages.slice(4, 6).map((img, i) => (
+                <div key={i} className="aspect-[3/4.5] bg-zinc-100 rounded-[3rem] overflow-hidden shadow-2xl border border-white/20">
+                   <img src={img} className="w-full h-full object-cover" />
+                </div>
+             ))}
+          </div>
+       </div>
+    </div>
+  );
+};
+
+const InspirationalTimeline: React.FC<{ shoots: Shoot[] }> = ({ shoots }) => {
+  const sortedShoots = [...shoots]
+    .filter(s => s.date)
+    .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
+
+  if (sortedShoots.length === 0) return null;
+
+  return (
+    <div className="hidden lg:block w-64 flex-shrink-0 space-y-8 animate-in fade-in slide-in-from-right duration-1000">
+       <div className="space-y-1">
+          <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">The Journey</h4>
+          <h2 className="text-2xl font-serif italic">Timeline</h2>
+       </div>
+       
+       <div className="relative pl-6 space-y-12">
+          {/* Vertical Line */}
+          <div className="absolute left-[3px] top-2 bottom-2 w-px bg-zinc-100" />
+          
+          {sortedShoots.map((shoot, i) => (
+             <div key={shoot.id} className="relative group cursor-default">
+                {/* Dot */}
+                <div className="absolute -left-[26px] top-1.5 w-2 h-2 rounded-full bg-zinc-200 group-hover:bg-black transition-colors" />
+                
+                <div className="space-y-1">
+                   <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">
+                      {shoot.date ? new Date(shoot.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recent'}
+                   </p>
+                   <h5 className="text-sm font-serif group-hover:italic transition-all">{shoot.name}</h5>
+                   <p className="text-[10px] text-zinc-300 uppercase tracking-tighter">{shoot.images.length} Captured</p>
+                </div>
+             </div>
+          ))}
+
+          {/* Call to action */}
+          <div className="pt-4">
+             <div className="p-4 bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 text-center space-y-2">
+                <Sparkles size={16} className="mx-auto text-zinc-300" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Next Chapter</p>
+                <p className="text-[10px] text-zinc-300 italic">"The lens is waiting."</p>
+             </div>
+          </div>
        </div>
     </div>
   );
@@ -147,8 +245,9 @@ export const Landing: React.FC<LandingProps> = ({
   return (
     <div className="max-w-7xl mx-auto space-y-20 py-12 animate-in fade-in duration-1000 relative">
       {/* Ambient Background Text */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full overflow-hidden pointer-events-none z-0">
-          <span className="absolute top-[-5%] left-1/2 -translate-x-1/2 text-[15vw] leading-none font-serif text-zinc-50/80 whitespace-nowrap select-none blur-sm">
+      {/* Ambient Background Text */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full overflow-hidden pointer-events-none z-0 flex items-center justify-center">
+          <span className="text-[15vw] leading-none font-serif text-zinc-200 whitespace-nowrap select-none blur-sm opacity-30">
             POSE & POISE
           </span>
       </div>
@@ -187,8 +286,11 @@ export const Landing: React.FC<LandingProps> = ({
         </div>
       </header>
 
-      {/* Main Actions / Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      {/* Main Layout Grid with Sidebar */}
+      <div className="flex flex-col lg:flex-row gap-16 max-w-6xl mx-auto px-4 relative z-10">
+        <div className="flex-1 space-y-12">
+          {/* Main Actions / Dashboard */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Card Studio Action */}
         <div className={`bg-white border border-zinc-100 rounded-[2.5rem] hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col ${savedCards.length > 0 ? 'h-auto' : 'lg:h-[720px]'}`}>
            <div className="p-10 relative z-10 text-center flex-shrink-0">
@@ -272,45 +374,35 @@ export const Landing: React.FC<LandingProps> = ({
               </div>
               
               <button 
+                disabled={!portfolioId && shoots.length === 0 && library.length === 0}
                 onClick={!portfolioId ? onCuratePortfolio : onOpenPortfolio}
-                className="bg-white text-[#1a1a1a] px-10 py-3.5 rounded-full font-bold text-[12px] tracking-[1px] hover:scale-105 hover:shadow-[0_4px_12px_rgba(255,255,255,0.2)] transition-all uppercase"
+                className={`bg-white text-[#1a1a1a] px-10 py-3.5 rounded-full font-bold text-[12px] tracking-[1px] transition-all uppercase ${(!portfolioId && shoots.length === 0 && library.length === 0) ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:scale-105 hover:shadow-[0_4px_12px_rgba(255,255,255,0.2)]'}`}
               >
-                {!portfolioId ? "Launch Builder" : "Edit Portfolio"}
+                {!portfolioId ? "Curate with AI" : "Edit Portfolio"}
               </button>
+               {!portfolioId && shoots.length === 0 && library.length === 0 && (
+                  <p className="text-[10px] text-zinc-500 mt-4 font-bold uppercase tracking-widest">
+                     Add images to your library to enable AI Curation
+                  </p>
+               )}
            </div>
 
-           {/* Card Bottom Section (NEW) - Hidden if no portfolioId */}
-           {portfolioId && (
-              <div className="bg-[#0d0d0d] p-[35px] flex-1 flex flex-col">
-                 <div className="text-[#888] text-[11px] uppercase tracking-[1.5px] mb-[25px] text-center font-semibold">PORTFOLIO PREVIEW</div>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px] flex-1">
-                    {[...Array(6)].map((_, i) => {
-                       const shootImages = shoots.flatMap(s => s.images.filter(url => !s.hiddenImages?.includes(url)));
-                       const img = shootImages[i];
-                       return (
-                         <div 
-                           key={i} 
-                            className={`
-                               aspect-square rounded-[12px] transition-all cursor-pointer flex items-center justify-center overflow-hidden group/thumb
-                               ${img ? 'bg-gradient-to-br from-[#333] to-[#555] border border-[#444] hover:scale-[1.08] hover:border-[#666]' : 'bg-transparent border border-white/5 opacity-40'}
-                            `}
-                           onClick={onOpenPortfolio}
-                         >
-                            {img ? (
-                              <img src={img} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumb:scale-110" />
-                            ) : (
-                              <div className="opacity-10 flex flex-col items-center gap-1">
-                                 <div className="w-4 h-4 bg-white rounded-sm" />
-                                 <div className="w-6 h-1 bg-white rounded-full" />
-                              </div>
-                            )}
-                         </div>
-                       );
-                    })}
-                 </div>
-              </div>
-           )}
+            {/* Card Bottom Section (PREVIEW) */}
+            {portfolioId && (
+               <div className="bg-[#0d0d0d] flex-1 flex flex-col items-center justify-start overflow-hidden pt-12 relative">
+                  <div className="text-[#888] text-[11px] uppercase tracking-[1.5px] mb-[25px] text-center font-semibold z-20">Portfolio Identity</div>
+                  <PortfolioPreview shoots={shoots} settings={portfolioSettings} profile={profile} />
+                  
+                  {/* Glass Gradient Overlay at bottom for depth */}
+                  <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0d0d0d] to-transparent z-10" />
+               </div>
+            )}
+         </div>
         </div>
+
+        {/* Inspirational Timeline Sidebar */}
+        <InspirationalTimeline shoots={shoots} />
+      </div>
       </div>
 
       <div className="space-y-12 pt-12 border-t border-zinc-50">

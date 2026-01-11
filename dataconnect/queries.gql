@@ -1,9 +1,0 @@
-query getImagesByHash($hash: String!) @auth(level: USER) {
-  images(where: { fileHash: { eq: $hash } }) {
-    id
-    url
-    user {
-       uid
-    }
-  }
-}

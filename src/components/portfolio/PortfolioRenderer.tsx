@@ -182,7 +182,7 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
 
              {/* Split Bio Side (Only for split + full hero) */}
              {settings.bioStyle === 'split' && settings.heroStyle === 'full' && (
-                 <div className="w-1/2 h-full bg-white flex flex-col items-center justify-center p-24 text-center animate-in slide-in-from-right duration-700">
+                 <div className="w-1/2 h-full bg-white flex flex-col items-center justify-center p-24 text-center animate-in fade-in slide-in-from-top-8 duration-1000">
                      <h1 className="text-6xl md:text-8xl font-serif tracking-tighter uppercase mb-8">{displayName}</h1>
                      <div className="h-px w-24 bg-zinc-200 mb-8" />
                      {profile?.description && (
@@ -212,7 +212,7 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
 
         {/* Professional Bio Section (Standard Style Only) */}
         {settings.showBio && settings.bioStyle === 'standard' && profile?.description && (
-          <div className="max-w-2xl mx-auto mb-20 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+          <div className="max-w-2xl mx-auto mb-20 text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-1000 delay-300">
              <div className="h-px w-12 bg-zinc-200 mx-auto" />
              <p className="font-serif italic text-xl md:text-2xl text-zinc-600 leading-relaxed px-4">
                 "{profile.description}"
@@ -228,7 +228,7 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
           
           {/* Sticky Bio Sidebar */}
           {settings.bioStyle === 'sticky' && settings.showBio && (
-              <div className="w-full md:w-1/3 text-left space-y-8 md:sticky md:top-32 h-fit mb-12 md:mb-0">
+              <div className="w-full md:w-1/3 text-left space-y-8 md:sticky md:top-32 h-fit mb-12 md:mb-0 animate-in fade-in slide-in-from-top-4 duration-1000">
                   <h2 className="text-4xl md:text-6xl font-serif tracking-tighter uppercase">{displayName}</h2>
                   <div className="w-12 h-px bg-black" />
                   {profile?.description && (
@@ -252,12 +252,10 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
             shoots.map(shoot => (
               <div key={shoot.id} className="space-y-8 animate-in slide-in-from-bottom-4 duration-700">
                  {/* Collection Header */}
-                 {(!settings.showHero || shoots.indexOf(shoot) !== 0) && (
-                   <div className="flex items-baseline justify-between border-b border-zinc-100 pb-4">
-                      <h3 className="font-serif text-3xl">{shoot.name}</h3>
-                      <span className="text-zinc-300 text-[10px] font-bold uppercase tracking-widest">{shoot.images.filter(url => !shoot.hiddenImages?.includes(url)).length} Shots</span>
-                   </div>
-                 )}
+                 <div className="flex items-baseline justify-between border-b border-zinc-100 pb-4">
+                    <h3 className="font-serif text-3xl">{shoot.name}</h3>
+                    <span className="text-zinc-300 text-[10px] font-bold uppercase tracking-widest">{shoot.images.filter(url => !shoot.hiddenImages?.includes(url)).length} Shots</span>
+                 </div>
                  
                  <div className={`
                     ${settings.layout === 'grid' 
@@ -336,7 +334,7 @@ export const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ shoots, se
                     <React.Fragment key={i}>
                         {showEditorialBio && (
                              <div className={`
-                                flex flex-col justify-center p-8 bg-black text-white rounded-sm break-inside-avoid
+                                flex flex-col justify-center p-8 bg-black text-white rounded-sm break-inside-avoid animate-in fade-in slide-in-from-top-4 duration-1000
                                 ${settings.layout === 'grid' ? 'aspect-[3/4] md:col-span-2 md:row-span-2' : settings.layout === 'bento' ? 'md:col-span-2 md:row-span-2 min-h-[300px]' : 'mb-4 p-8'}
                              `}>
                                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">About the Model</span>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shoot, Profile } from '@/types';
 import { BrandIcon } from '@/components/ui/BrandIcon';
-import { LayoutGrid, AppWindow, Maximize2, Globe, Lock, ExternalLink, Layers, RefreshCw, Grid2x2, Sparkles, Type, Play, ChevronDown, Clock } from 'lucide-react';
+import { LayoutGrid, AppWindow, Maximize2, Globe, Lock, ExternalLink, Layers, RefreshCw, Grid2x2, Sparkles, Type, Play, ChevronDown, Clock, Check } from 'lucide-react';
 import { PortfolioRenderer, PortfolioSettings } from './PortfolioRenderer';
 
 // Extended settings for local UI state
@@ -53,33 +53,42 @@ export const PortfolioEditor: React.FC<PortfolioEditorProps> = ({
   onApplySuggestions,
   onOpenAI
 }) => {
-  const [settings, setSettings] = useState<EditorSettings>(initialSettings || DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<EditorSettings>(() => ({
+    ...(initialSettings || DEFAULT_SETTINGS),
+    _isHeroMenuOpen: false,
+    _isBioMenuOpen: false
+  }));
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  // Modal state moved to parent
+  const [lastSavedSettings, setLastSavedSettings] = useState<string>(JSON.stringify(initialSettings || DEFAULT_SETTINGS));
 
-  // Track changes to show "Update" button state
+  // Debounced Auto-save
   useEffect(() => {
-     // rudimentary change detection
-     setHasChanges(true); // Always allowing update for now for simplicity, or we deep compare
-  }, [settings]);
-
-  const handleUpdate = async () => {
-    console.log("PortfolioEditor: Update button clicked.");
-    setIsSaving(true);
-    try {
-      console.log("PortfolioEditor: Calling onUpdate prop...");
-      await onUpdate(settings);
-      console.log("PortfolioEditor: Update successful.");
+    const currentSettingsStr = JSON.stringify(settings);
+    if (currentSettingsStr === lastSavedSettings) {
       setHasChanges(false);
-    } catch (error) {
-      console.error("PortfolioEditor: Update failed:", error);
-    } finally {
-      setIsSaving(false);
-      console.log("PortfolioEditor: Spinner stopped.");
+      return;
     }
-  };
+
+    setHasChanges(true);
+    const timer = setTimeout(async () => {
+      setIsSaving(true);
+      try {
+        // Strip UI state before saving
+        const { _isHeroMenuOpen, _isBioMenuOpen, ...persistentSettings } = settings;
+        await onUpdate(persistentSettings);
+        setLastSavedSettings(currentSettingsStr);
+        setHasChanges(false);
+      } catch (error) {
+        console.error("Auto-save failed:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 2000); // 2 second debounce
+
+    return () => clearTimeout(timer);
+  }, [settings, onUpdate]);
 
   const handlePublishToggle = async () => {
     const newState = !isPublic;
@@ -87,7 +96,9 @@ export const PortfolioEditor: React.FC<PortfolioEditorProps> = ({
     await onPublish(newState);
   };
   
-  const publicUrl = portfolioId ? `/public_preview?userid=${portfolioId}&portfolioid=${portfolioId}` : null;
+  const previewUrl = portfolioId ? `/public_preview?portfolioid=${portfolioId}` : null;
+  const handle = profile?.instagram?.replace('@', '').toLowerCase();
+  const liveUrl = handle ? (process.env.NODE_ENV === 'development' ? `http://${handle}.localhost:3000` : `https://${handle}.poseandpoise.studio`) : null;
 
   return (
     <div className="max-w-[1600px] mx-auto py-8 px-8 min-h-screen flex flex-col">
@@ -241,22 +252,32 @@ export const PortfolioEditor: React.FC<PortfolioEditorProps> = ({
 
          {/* Actions */}
          <div className="flex items-center space-x-4">
-             {/* Always show View Preview / Live */}
-             {publicUrl && (
-               <a 
-                 href={publicUrl} 
-                 target="_blank" 
-                 rel="noopener noreferrer"
-                 className={`flex items-center space-x-2 text-[10px] font-bold uppercase px-4 py-2 rounded-full transition-colors ${
-                    isPublic ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20' : 'hover:bg-white/10 text-white'
-                 }`}
-               >
-                 <ExternalLink size={14} /> <span>{isPublic ? 'View Live' : 'View Preview'}</span>
-               </a>
-             )}
+             {/* Preview & Live Links */}
+             <div className="flex items-center space-x-2">
+               {previewUrl && (
+                 <a 
+                   href={previewUrl} 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   className="flex items-center space-x-2 text-[10px] font-bold uppercase px-4 py-2 rounded-full hover:bg-white/10 text-white transition-colors"
+                 >
+                   <ExternalLink size={14} /> <span>View Preview</span>
+                 </a>
+               )}
+               {isPublic && liveUrl && (
+                 <a 
+                   href={liveUrl} 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   className="flex items-center space-x-2 text-[10px] font-bold uppercase px-4 py-2 rounded-full bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors border border-green-500/30"
+                 >
+                   <Globe size={14} /> <span>View Live</span>
+                 </a>
+               )}
+             </div>
              
              <button 
-               onClick={() => setIsAIModalOpen(true)}
+               onClick={onOpenAI}
                className="flex items-center space-x-2 text-[10px] font-bold uppercase px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-300 rounded-full hover:from-indigo-500/30 hover:to-purple-500/30 transition-all shadow-lg shadow-indigo-500/10"
              >
                <Sparkles size={14} className="text-indigo-400" /> <span>Enhance with AI</span>
@@ -269,15 +290,14 @@ export const PortfolioEditor: React.FC<PortfolioEditorProps> = ({
                <Layers size={14} /> <span>Curate</span>
              </button>
 
-             <button 
-               onClick={handleUpdate}
-               className={`flex items-center space-x-2 text-[10px] font-bold uppercase px-6 py-3 rounded-full transition-all 
-                 ${isSaving ? 'bg-zinc-700 cursor-wait' : 'bg-white text-black hover:bg-zinc-200'}
-               `}
-             >
-                {isSaving ? <RefreshCw size={14} className="animate-spin" /> : null}
-                <span>{isSaving ? 'Updating...' : 'Update'}</span>
-             </button>
+             <div 
+                className={`flex items-center space-x-2 text-[10px] font-bold uppercase px-6 py-3 rounded-full transition-all border
+                  ${isSaving ? 'bg-zinc-800 border-zinc-700 text-zinc-400' : hasChanges ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300' : 'bg-green-500/10 border-green-500/20 text-green-400'}
+                `}
+              >
+                {isSaving ? <RefreshCw size={14} className="animate-spin" /> : hasChanges ? <RefreshCw size={14} /> : <Check size={14} />}
+                <span>{isSaving ? 'Saving...' : hasChanges ? 'Changes Pending' : 'Saved'}</span>
+             </div>
 
              <button 
                onClick={handlePublishToggle}

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { BrandIcon } from '@/components/ui/BrandIcon';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 
 interface LoginProps {
   onLogin: (username: string) => void;
@@ -17,8 +16,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError("");
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, form.username, form.password);
-      onLogin(userCredential.user.displayName || "User");
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: form.username,
+        password: form.password,
+      });
+      if (error) throw error;
+      // onLogin is optional if we rely on AuthContext, but we might keep it for transitions
+      // Passing email as fallback for display name
+      if (data.user) {
+         onLogin(data.user.email || "User");
+      }
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -30,18 +37,28 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError("");
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      onLogin(userCredential.user.displayName || "User");
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+           redirectTo: window.location.origin // Ensure redirect back
+        }
+      });
+      if (error) throw error;
+      // OAuth redirects, so execution stops here usually
     } catch (error: any) {
       setError(error.message);
-    } finally {
       setLoading(false);
-    }
+    } 
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] animate-in fade-in duration-700">
+    <div className="flex flex-col items-center justify-center min-h-[80vh] animate-in fade-in duration-700 relative overflow-hidden">
+      {/* Ambient Background Text */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full overflow-hidden pointer-events-none z-0 flex items-center justify-center">
+          <span className="text-[20vw] leading-none font-serif text-zinc-200 whitespace-nowrap select-none blur-sm opacity-30">
+            POSE & POISE
+          </span>
+      </div>
       <div className="w-full max-w-md bg-white p-12 rounded-[3rem] border border-zinc-100 shadow-2xl">
          <div className="flex flex-col items-center mb-10 space-y-4">
             <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center shadow-xl">

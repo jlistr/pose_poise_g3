@@ -24,10 +24,7 @@
       "port": 4000
     },
     "singleProjectMode": true,
-    "dataconnect": {
-      "port": 9399,
-      "dataDir": "dataconnect/.dataconnect/pgliteData"
-    },
+
     "storage": {
       "host": "0.0.0.0",
       "port": 9199
@@ -47,8 +44,5 @@
     "tasks": {
       "port": 9499
     }
-  },
-  "dataconnect": {
-    "source": "dataconnect"
   }
 }
