@@ -278,7 +278,7 @@ export const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 )}
 
                 {/* Duplicates Section */}
-                {analysis.duplicateIndices.length > 0 && (
+                {analysis.duplicateIndices && analysis.duplicateIndices.length > 0 && (
                    <div className="p-8 bg-orange-50 border border-orange-100 rounded-[2rem] space-y-6 animate-in zoom-in-95">
                       <div className="flex items-center space-x-3">
                          <div className="p-2 bg-orange-500 rounded-lg text-white">
