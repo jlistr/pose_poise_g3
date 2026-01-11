@@ -1,0 +1,857 @@
+extend type CompCard {
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "CompCard", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `CompCard` table.
+  """
+  _count: Int! @fdc_generated(from: "CompCard.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CompCard` table where the `aesthetic` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  aesthetic_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CompCard.aesthetic", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CompCard` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CompCard.createdAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CompCard` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CompCard.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CompCard` table where the `layout` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  layout_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CompCard.layout", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CompCard` table where the `profileSnapshot` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  profileSnapshot_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CompCard.profileSnapshot", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CompCard` table where the `updatedAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  updatedAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CompCard.updatedAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CompCard` table where the `userUid` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  userUid_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CompCard.userUid", purpose: QUERY_COUNT)
+  """
+  ✨ Minimum of the `createdAt` field in the `CompCard` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "CompCard.createdAt", purpose: QUERY_MIN)
+  """
+  ✨ Minimum of the `updatedAt` field in the `CompCard` table.
+  """
+  updatedAt_min: Timestamp @fdc_generated(from: "CompCard.updatedAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `createdAt` field in the `CompCard` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "CompCard.createdAt", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `updatedAt` field in the `CompCard` table.
+  """
+  updatedAt_max: Timestamp @fdc_generated(from: "CompCard.updatedAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "CompCard.id", purpose: GLOBAL_ID)
+}
+extend type Image {
+  """
+  ✨ List `ShootImage` objects in a one-to-many relationship (where `ShootImage`.`image` is this object).
+  """
+  shootImages_on_image(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: ShootImage_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [ShootImage_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: ShootImage_Having
+  ): [ShootImage!]! @fdc_generated(from: "ShootImage.image", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  ✨ List `Shoot` objects using `ShootImage` as the join table (a `ShootImage` object exists where its `image` is this and its `shoot` is that).
+  """
+  shoots_via_ShootImage(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: ShootImage_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [ShootImage_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: ShootImage_Having
+  ): [Shoot!]! @fdc_generated(from: "ShootImage", purpose: QUERY_MULTIPLE_MANY_TO_MANY)
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "Image", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `Image` table.
+  """
+  _count: Int! @fdc_generated(from: "Image.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Image` table where the `fileHash` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  fileHash_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Image.fileHash", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Image` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Image.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Image` table where the `metadata` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  metadata_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Image.metadata", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Image` table where the `uploadedAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  uploadedAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Image.uploadedAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Image` table where the `url` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  url_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Image.url", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Image` table where the `userUid` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  userUid_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Image.userUid", purpose: QUERY_COUNT)
+  """
+  ✨ Minimum of the `uploadedAt` field in the `Image` table.
+  """
+  uploadedAt_min: Timestamp @fdc_generated(from: "Image.uploadedAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `uploadedAt` field in the `Image` table.
+  """
+  uploadedAt_max: Timestamp @fdc_generated(from: "Image.uploadedAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "Image.id", purpose: GLOBAL_ID)
+}
+extend type Portfolio {
+  """
+  ✨ List `Shoot` objects in a one-to-many relationship (where `Shoot`.`portfolio` is this object).
+  """
+  shoots_on_portfolio(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Shoot_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Shoot_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Shoot_Having
+  ): [Shoot!]! @fdc_generated(from: "Shoot.portfolio", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "Portfolio", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `Portfolio` table.
+  """
+  _count: Int! @fdc_generated(from: "Portfolio.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Portfolio` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Portfolio.createdAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Portfolio` table where the `isPublic` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  isPublic_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Portfolio.isPublic", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Portfolio` table where the `settings` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  settings_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Portfolio.settings", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Portfolio` table where the `updatedAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  updatedAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Portfolio.updatedAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Portfolio` table where the `userUid` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  userUid_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Portfolio.userUid", purpose: QUERY_COUNT)
+  """
+  ✨ Minimum of the `createdAt` field in the `Portfolio` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "Portfolio.createdAt", purpose: QUERY_MIN)
+  """
+  ✨ Minimum of the `updatedAt` field in the `Portfolio` table.
+  """
+  updatedAt_min: Timestamp @fdc_generated(from: "Portfolio.updatedAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `createdAt` field in the `Portfolio` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "Portfolio.createdAt", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `updatedAt` field in the `Portfolio` table.
+  """
+  updatedAt_max: Timestamp @fdc_generated(from: "Portfolio.updatedAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "Portfolio.userUid", purpose: GLOBAL_ID)
+}
+extend type Profile {
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "Profile", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `Profile` table.
+  """
+  _count: Int! @fdc_generated(from: "Profile.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `avatar` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  avatar_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.avatar", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `bust` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  bust_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.bust", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `careerGoals` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  careerGoals_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.careerGoals", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `description` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  description_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.description", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `dressSize` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  dressSize_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.dressSize", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `eyeColor` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  eyeColor_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.eyeColor", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `hairColor` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  hairColor_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.hairColor", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `height` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  height_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.height", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `hips` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  hips_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.hips", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `instagram` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  instagram_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.instagram", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `name` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  name_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.name", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `shoeSize` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  shoeSize_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.shoeSize", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `userUid` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  userUid_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.userUid", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Profile` table where the `waist` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  waist_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Profile.waist", purpose: QUERY_COUNT)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "Profile.userUid", purpose: GLOBAL_ID)
+}
+extend type Shoot {
+  """
+  ✨ List `ShootImage` objects in a one-to-many relationship (where `ShootImage`.`shoot` is this object).
+  """
+  shootImages_on_shoot(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: ShootImage_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [ShootImage_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: ShootImage_Having
+  ): [ShootImage!]! @fdc_generated(from: "ShootImage.shoot", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  ✨ List `Image` objects using `ShootImage` as the join table (a `ShootImage` object exists where its `shoot` is this and its `image` is that).
+  """
+  images_via_ShootImage(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: ShootImage_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [ShootImage_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: ShootImage_Having
+  ): [Image!]! @fdc_generated(from: "ShootImage", purpose: QUERY_MULTIPLE_MANY_TO_MANY)
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "Shoot", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `Shoot` table.
+  """
+  _count: Int! @fdc_generated(from: "Shoot.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Shoot` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shoot.createdAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Shoot` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shoot.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Shoot` table where the `name` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  name_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shoot.name", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Shoot` table where the `photographer` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  photographer_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shoot.photographer", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Shoot` table where the `portfolioUserUid` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  portfolioUserUid_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shoot.portfolioUserUid", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Shoot` table where the `studio` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  studio_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shoot.studio", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Shoot` table where the `updatedAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  updatedAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shoot.updatedAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Shoot` table where the `vibes` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  vibes_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shoot.vibes", purpose: QUERY_COUNT)
+  """
+  ✨ Minimum of the `createdAt` field in the `Shoot` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "Shoot.createdAt", purpose: QUERY_MIN)
+  """
+  ✨ Minimum of the `updatedAt` field in the `Shoot` table.
+  """
+  updatedAt_min: Timestamp @fdc_generated(from: "Shoot.updatedAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `createdAt` field in the `Shoot` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "Shoot.createdAt", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `updatedAt` field in the `Shoot` table.
+  """
+  updatedAt_max: Timestamp @fdc_generated(from: "Shoot.updatedAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "Shoot.id", purpose: GLOBAL_ID)
+}
+extend type ShootImage {
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "ShootImage", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `ShootImage` table.
+  """
+  _count: Int! @fdc_generated(from: "ShootImage.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `ShootImage` table where the `imageId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  imageId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "ShootImage.imageId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `ShootImage` table where the `isVisible` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  isVisible_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "ShootImage.isVisible", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `ShootImage` table where the `order` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  order_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "ShootImage.order", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `ShootImage` table where the `shootId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  shootId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "ShootImage.shootId", purpose: QUERY_COUNT)
+  """
+  ✨ Sum the `order` field in the `ShootImage` table.
+  """
+  order_sum(
+    """
+    Set to true to sum the distinct values.
+    """
+    distinct: Boolean = false
+  ): Int @fdc_generated(from: "ShootImage.order", purpose: QUERY_SUM)
+  """
+  ✨ Average the `order` field in the `ShootImage` table.
+  """
+  order_avg(
+    """
+    Set to true to average the distinct values.
+    """
+    distinct: Boolean = false
+  ): Float @fdc_generated(from: "ShootImage.order", purpose: QUERY_AVG)
+  """
+  ✨ Minimum of the `order` field in the `ShootImage` table.
+  """
+  order_min: Int @fdc_generated(from: "ShootImage.order", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `order` field in the `ShootImage` table.
+  """
+  order_max: Int @fdc_generated(from: "ShootImage.order", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "ShootImage.shootId,imageId", purpose: GLOBAL_ID)
+}
+extend type User {
+  """
+  ✨ List `CompCard` objects in a one-to-many relationship (where `CompCard`.`user` is this object).
+  """
+  compCards_on_user(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: CompCard_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [CompCard_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: CompCard_Having
+  ): [CompCard!]! @fdc_generated(from: "CompCard.user", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  ✨ List `Image` objects in a one-to-many relationship (where `Image`.`user` is this object).
+  """
+  images_on_user(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Image_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Image_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Image_Having
+  ): [Image!]! @fdc_generated(from: "Image.user", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  ✨ List `Portfolio` objects in a one-to-one relationship (where `Portfolio`.`user` is this object).
+  """
+  portfolio_on_user: Portfolio @fdc_generated(from: "Portfolio.user", purpose: QUERY_SINGLE_ONE_TO_ONE)
+  """
+  ✨ List `Profile` objects in a one-to-one relationship (where `Profile`.`user` is this object).
+  """
+  profile_on_user: Profile @fdc_generated(from: "Profile.user", purpose: QUERY_SINGLE_ONE_TO_ONE)
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "User", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `User` table.
+  """
+  _count: Int! @fdc_generated(from: "User.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.createdAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `email` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  email_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.email", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `uid` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  uid_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.uid", purpose: QUERY_COUNT)
+  """
+  ✨ Minimum of the `createdAt` field in the `User` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "User.createdAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `createdAt` field in the `User` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "User.createdAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "User.uid", purpose: GLOBAL_ID)
+}

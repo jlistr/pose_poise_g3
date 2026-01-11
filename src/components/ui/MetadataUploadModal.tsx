@@ -18,7 +18,8 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
   onConfirm, 
   onCancel 
 }) => {
-  const [vibe, setVibe] = useState(initialData.vibe || '');
+  const [vibes, setVibes] = useState<string[]>(initialData.vibes || []);
+  const [customTag, setCustomTag] = useState('');
   const [photographer, setPhotographer] = useState(initialData.photographer || '');
   const [photographerUrl, setPhotographerUrl] = useState(initialData.photographerUrl || '');
   const [studio, setStudio] = useState(initialData.studio || '');
@@ -26,10 +27,24 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
 
   const count = files.length + imageUrls.length;
 
+  const toggleVibe = (tag: string) => {
+    setVibes(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  };
+
+  const addCustomTag = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && customTag.trim()) {
+      e.preventDefault();
+      if (!vibes.includes(customTag.trim())) {
+        setVibes(prev => [...prev, customTag.trim()]);
+      }
+      setCustomTag('');
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onConfirm({
-      vibe,
+      vibes,
       photographer,
       photographerUrl,
       studio,
@@ -54,7 +69,7 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
            {/* Thumbnails Preview */}
-           <div className="flex -space-x-4 overflow-hidden py-2">
+           <div className="flex -space-x-2 overflow-hidden py-2">
               {files.slice(0, 5).map((f, i) => (
                  <div key={`file-${i}`} className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-zinc-100 overflow-hidden relative">
                     <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" />
@@ -73,19 +88,19 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
               )}
            </div>
 
-            {/* Vibe */}
+            {/* Vibes */}
             <div className="space-y-3">
                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                  <Sparkles size={12} /> Vibe / Tag
+                  <Sparkles size={12} /> Vibe / Tags
                </label>
                <div className="flex flex-wrap gap-2">
                   {VIBE_TAGS.map(tag => (
                     <button
                       key={tag}
                       type="button"
-                      onClick={() => setVibe(tag)}
+                      onClick={() => toggleVibe(tag)}
                       className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
-                        vibe === tag
+                        vibes.includes(tag)
                           ? 'bg-black text-white border-black'
                           : 'bg-white text-zinc-400 border-zinc-200 hover:border-black hover:text-black'
                       }`}
@@ -93,15 +108,30 @@ export const MetadataUploadModal: React.FC<MetadataUploadModalProps> = ({
                       {tag}
                     </button>
                   ))}
+
+                  {/* Custom Tags that aren't in VIBE_TAGS */}
+                  {vibes.filter(v => !VIBE_TAGS.includes(v)).map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleVibe(tag)}
+                      className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border bg-zinc-900 text-white border-zinc-900 group"
+                    >
+                      {tag} <X size={10} className="inline ml-1 opacity-50 group-hover:opacity-100" />
+                    </button>
+                  ))}
                </div>
 
-               {/* Custom Vibe Input (optional fallback) */}
-               {!VIBE_TAGS.includes(vibe) && vibe !== '' && (
-                  <div className="text-xs text-zinc-400 mt-2 italic">
-                     Custom: {vibe}
-                     <button type="button" onClick={() => setVibe('')} className="ml-2 text-red-500 underline decoration-red-500/30">Clear</button>
-                  </div>
-               )}
+               {/* Custom Tag Input */}
+               <div className="mt-4">
+                  <input 
+                    value={customTag}
+                    onChange={(e) => setCustomTag(e.target.value)}
+                    onKeyDown={addCustomTag}
+                    className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 placeholder:text-zinc-300"
+                    placeholder="Type custom tag + Enter..."
+                  />
+               </div>
             </div>
 
            {/* Photographer */}

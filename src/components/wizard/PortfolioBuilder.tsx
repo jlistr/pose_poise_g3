@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, X, Edit2, Sparkles, Tag } from 'lucide-react';
+import { Plus, X, Edit2, Sparkles, Tag, Eye, EyeOff, Check, Image as ImageIcon } from 'lucide-react';
 import { Shoot, ImageItem } from '@/types';
 import { MetadataUploadModal } from '@/components/ui/MetadataUploadModal';
 
@@ -9,8 +9,11 @@ interface PortfolioBuilderProps {
   onShootUpload: (shootId: string | number, e: React.ChangeEvent<HTMLInputElement>) => void;
   onUpdateShootName: (shootId: string | number, name: string) => void;
   // onUpdateShootMeta replaced by batch update
-  onUpdateShootMeta: (shootId: string | number, field: keyof Shoot, value: string) => void; 
+  onUpdateShootMeta: (shootId: string | number, field: keyof Shoot, value: string | string[]) => void; 
   onRemoveImage: (shootId: string | number, imageIndex: number) => void;
+  onToggleVisibility?: (shootId: string | number, url: string) => void;
+  library: ImageItem[];
+  onAddImagesToShoot: (shootId: string | number, imageUrls: string[]) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -22,12 +25,27 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
   onUpdateShootName,
   onUpdateShootMeta,
   onRemoveImage,
+  onToggleVisibility,
+  library,
+  onAddImagesToShoot,
   onNext, 
   onBack 
 }) => {
   const [editingShootId, setEditingShootId] = useState<string | number | null>(null);
+  const [selectedLibraryImages, setSelectedLibraryImages] = useState<string[]>([]);
 
   const getShootToEdit = () => shoots.find(s => s.id === editingShootId);
+
+  const toggleLibrarySelection = (url: string) => {
+    setSelectedLibraryImages(prev => 
+      prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
+    );
+  };
+
+  const handleAddToShoot = (shootId: string | number) => {
+    onAddImagesToShoot(shootId, selectedLibraryImages);
+    setSelectedLibraryImages([]);
+  };
 
   return (
     <div className="max-w-5xl mx-auto py-8 animate-in slide-in-from-bottom-4">
@@ -35,6 +53,49 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
         <h2 className="text-4xl font-serif mb-2">Portfolio Curation</h2>
         <p className="text-zinc-400 uppercase tracking-widest text-xs">Organize your shoots & credits</p>
       </div>
+
+      {/* Quick Add Library */}
+      <div className="mb-12">
+         <div className="flex items-center justify-between mb-4 px-2">
+            <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+               <ImageIcon size={14} /> Quick Add from Library
+            </h3>
+            {selectedLibraryImages.length > 0 && (
+               <span className="text-xs text-black font-bold bg-zinc-100 px-3 py-1 rounded-full animate-in fade-in">
+                  {selectedLibraryImages.length} Selected
+               </span>
+            )}
+         </div>
+         <div className="bg-zinc-50/50 border border-zinc-100 rounded-3xl p-6 overflow-x-auto">
+             <div className="flex space-x-4 min-w-max">
+                {library.map((img) => {
+                  const isSelected = selectedLibraryImages.includes(img.url);
+                  return (
+                    <div 
+                      key={img.id} 
+                      onClick={() => toggleLibrarySelection(img.url)}
+                      className={`relative w-32 aspect-[3/4] rounded-xl overflow-hidden cursor-pointer transition-all duration-200 group
+                         ${isSelected ? 'ring-4 ring-black scale-95 shadow-lg' : 'hover:scale-105 hover:shadow-md'}
+                      `}
+                    >
+                       <img src={img.url} className="w-full h-full object-cover" />
+                       {isSelected && (
+                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                             <div className="bg-black text-white p-1 rounded-full shadow-sm"><Check size={16} /></div>
+                          </div>
+                       )}
+                    </div>
+                  );
+                })}
+                {library.length === 0 && (
+                   <div className="w-full py-8 text-center text-zinc-400 italic text-sm">
+                      No images in library. Upload some below!
+                   </div>
+                )}
+             </div>
+         </div>
+      </div>
+
       <div className="space-y-12">
         {shoots.map(s => (
           <div key={s.id} className="bg-white border border-zinc-100 p-8 rounded-[2rem] shadow-sm group">
@@ -58,16 +119,28 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
                      <Tag size={12} />
                      <span>Edit Credits</span>
                   </button>
-                  <span className="text-xs font-bold uppercase tracking-widest text-zinc-300">{s.images.length} Assets</span>
+                  {selectedLibraryImages.length > 0 ? (
+                      <button 
+                        onClick={() => handleAddToShoot(s.id)}
+                        className="bg-black text-white px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-2 shadow-lg animate-in fade-in"
+                      >
+                         <Plus size={12} /> Add {selectedLibraryImages.length} Assets
+                      </button>
+                  ) : (
+                      <span className="text-xs font-bold uppercase tracking-widest text-zinc-300">{s.images.length} Assets</span>
+                  )}
                </div>
             </div>
 
-            {/* Display Metadata Summary (Use consolidated display instead of inputs) */}
-            {(s.vibe || s.photographer || s.studio) && (
+            {((s.vibes && s.vibes.length > 0) || s.photographer || s.studio) && (
                <div className="flex flex-wrap gap-4 mb-6 text-xs text-zinc-400">
-                  {s.vibe && (
-                     <div className="flex items-center gap-1 bg-zinc-50 px-3 py-1 rounded-full">
-                        <Sparkles size={10} /> <span className="uppercase tracking-wider font-bold">{s.vibe}</span>
+                  {s.vibes && s.vibes.length > 0 && (
+                     <div className="flex flex-wrap gap-2">
+                        {s.vibes.map(v => (
+                           <div key={v} className="flex items-center gap-1 bg-zinc-50 px-3 py-1 rounded-full">
+                              <Sparkles size={10} /> <span className="uppercase tracking-wider font-bold">{v}</span>
+                           </div>
+                        ))}
                      </div>
                   )}
                   {s.photographer && (
@@ -85,17 +158,30 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
 
             {/* Images Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {s.images.map((img, i) => (
-                <div key={i} className="relative group/img aspect-[3/4] rounded-xl overflow-hidden">
-                   <img src={img} className="w-full h-full object-cover shadow-sm" />
-                   <button 
-                     onClick={() => onRemoveImage(s.id, i)}
-                     className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full text-zinc-400 hover:text-white hover:bg-red-500 transition-all opacity-0 group-hover/img:opacity-100"
-                   >
-                     <X size={14} />
-                   </button>
-                </div>
-              ))}
+              {s.images.map((img, i) => {
+                const isHidden = s.hiddenImages?.includes(img);
+                return (
+                  <div key={i} className={`relative group/img aspect-[3/4] rounded-xl overflow-hidden transition-opacity ${isHidden ? 'opacity-40' : 'opacity-100'}`}>
+                     <img src={img} className="w-full h-full object-cover shadow-sm" />
+                     
+                     <div className="absolute top-2 right-2 flex space-x-2 transition-all opacity-0 group-hover/img:opacity-100">
+                        <button 
+                          onClick={() => onToggleVisibility?.(s.id, img)}
+                          className={`p-1.5 bg-white/90 rounded-full ${isHidden ? 'text-zinc-400' : 'text-zinc-600'} hover:text-black transition-all`}
+                          title={isHidden ? "Show in Live View" : "Hide from Live View"}
+                        >
+                          {isHidden ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                        <button 
+                          onClick={() => onRemoveImage(s.id, i)}
+                          className="p-1.5 bg-white/90 rounded-full text-zinc-400 hover:text-white hover:bg-red-500 transition-all"
+                        >
+                          <X size={14} />
+                        </button>
+                     </div>
+                  </div>
+                );
+              })}
               <label className="aspect-[3/4] border-2 border-dashed border-zinc-100 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-zinc-300 hover:bg-zinc-50 transition-all">
                 <Plus className="text-zinc-300 mb-2" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-300">Add Image</span>
@@ -125,7 +211,7 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
            files={[]} // No new files
            imageUrls={getShootToEdit()!.images}
            initialData={{
-              vibe: getShootToEdit()!.vibe,
+              vibes: getShootToEdit()!.vibes,
               photographer: getShootToEdit()!.photographer,
               photographerUrl: getShootToEdit()!.photographerUrl,
               studio: getShootToEdit()!.studio,
@@ -134,7 +220,7 @@ export const PortfolioBuilder: React.FC<PortfolioBuilderProps> = ({
            onConfirm={(meta) => {
               const sId = editingShootId;
               // Batch update parent
-              if (meta.vibe !== undefined) onUpdateShootMeta(sId, 'vibe', meta.vibe);
+              if (meta.vibes !== undefined) onUpdateShootMeta(sId, 'vibes', meta.vibes);
               if (meta.photographer !== undefined) onUpdateShootMeta(sId, 'photographer', meta.photographer);
               if (meta.photographerUrl !== undefined) onUpdateShootMeta(sId, 'photographerUrl', meta.photographerUrl);
               if (meta.studio !== undefined) onUpdateShootMeta(sId, 'studio', meta.studio);

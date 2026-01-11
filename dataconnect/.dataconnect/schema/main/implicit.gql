@@ -1,0 +1,52 @@
+extend type CompCard {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "CompCard", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `CompCard`.`user`. It must match the value of `User`.`uid`. See `@ref` for how to customize it.
+  """
+  userUid: String! @fdc_generated(from: "CompCard.user", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Image {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Image", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Image`.`user`. It must match the value of `User`.`uid`. See `@ref` for how to customize it.
+  """
+  userUid: String! @fdc_generated(from: "Image.user", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Portfolio {
+  """
+  ✨ Implicit foreign key field based on `Portfolio`.`user`. It must match the value of `User`.`uid`. See `@ref` for how to customize it.
+  """
+  userUid: String! @fdc_generated(from: "Portfolio.user", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Profile {
+  """
+  ✨ Implicit foreign key field based on `Profile`.`user`. It must match the value of `User`.`uid`. See `@ref` for how to customize it.
+  """
+  userUid: String! @fdc_generated(from: "Profile.user", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Shoot {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Shoot", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Shoot`.`portfolio`. It must match the value of `Portfolio`.`userUid`. See `@ref` for how to customize it.
+  """
+  portfolioUserUid: String! @fdc_generated(from: "Shoot.portfolio", purpose: IMPLICIT_REF_FIELD)
+}
+extend type ShootImage {
+  """
+  ✨ Implicit foreign key field based on `ShootImage`.`shoot`. It must match the value of `Shoot`.`id`. See `@ref` for how to customize it.
+  """
+  shootId: UUID! @fdc_generated(from: "ShootImage.shoot", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `ShootImage`.`image`. It must match the value of `Image`.`id`. See `@ref` for how to customize it.
+  """
+  imageId: UUID! @fdc_generated(from: "ShootImage.image", purpose: IMPLICIT_REF_FIELD)
+}

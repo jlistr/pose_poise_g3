@@ -3,9 +3,10 @@ import React from 'react';
 interface BrandIconProps {
   size?: number;
   className?: string;
+  color?: string; // Add color prop
 }
 
-export const BrandIcon: React.FC<BrandIconProps> = ({ size = 32, className = "" }) => (
+export const BrandIcon: React.FC<BrandIconProps> = ({ size = 32, className = "", color }) => (
   <svg 
     width={size} 
     height={size} 
@@ -16,6 +17,7 @@ export const BrandIcon: React.FC<BrandIconProps> = ({ size = 32, className = "" 
     strokeLinecap="round" 
     strokeLinejoin="round" 
     className={className}
+    style={color ? { color } : undefined} // Apply color via style
   >
     <circle cx="13" cy="3" r="1.2" fill="currentColor" stroke="none" />
     <path d="M13 4.5c-1 0-2.5.5-3.5 2s-1 3-1 3" />

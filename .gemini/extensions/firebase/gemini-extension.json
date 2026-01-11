@@ -1,0 +1,11 @@
+{
+  "name": "firebase",
+  "version": "0.0.1",
+  "mcpServers": {
+    "firebase": {
+      "command": "npx",
+      "args": ["-y", "firebase-tools", "mcp", "--dir", "/Users/johnlister/Documents/Projects/pose_poise_g3"]
+    }
+  },
+  "contextFileName": "FIREBASE.md"
+}

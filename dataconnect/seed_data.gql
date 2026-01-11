@@ -1,0 +1,97 @@
+mutation SeedDatabase @transaction @auth(level: NO_ACCESS) {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      agencyName: "Pose 'n Poise Agency",
+      createdAt: "2024-04-29T12:00:00Z",
+      displayName: "Jane Doe",
+      email: "jane.doe@example.com",
+      eyeColor: "Blue",
+      hairColor: "Brown",
+      height: "5'8\"",
+      measurements: "34-24-34",
+      photoUrl: "https://example.com/jane.jpg",
+      userType: "Model"
+    },
+    {
+      id: "661f9511-f3ac-52e5-b827-557766551111",
+      agencyName: "Elite Posing",
+      createdAt: "2024-04-30T10:00:00Z",
+      displayName: "John Smith",
+      email: "john.smith@example.com",
+      eyeColor: "Brown",
+      hairColor: "Black",
+      height: "6'0\"",
+      measurements: "40-32-38",
+      photoUrl: "https://example.com/john.jpg",
+      userType: "Photographer"
+    }
+  ])
+  photo_insertMany(data: [
+    {
+      id: "772a0622-04bb-63f6-c938-668877662222",
+      ownerId: "661f9511-f3ac-52e5-b827-557766551111",
+      caption: "Sunset shoot",
+      imageUrl: "https://example.com/sunset.jpg",
+      photographerName: "John Smith",
+      shootDate: "2024-04-28",
+      tags: ["sunset", "beach"],
+      uploadedAt: "2024-04-29T14:00:00Z"
+    },
+    {
+      id: "883b1733-15cc-7407-da49-779988773333",
+      ownerId: "661f9511-f3ac-52e5-b827-557766551111",
+      caption: "Studio portrait",
+      imageUrl: "https://example.com/portrait.jpg",
+      photographerName: "John Smith",
+      shootDate: "2024-04-29",
+      tags: ["portrait", "studio"],
+      uploadedAt: "2024-04-30T11:00:00Z"
+    }
+  ])
+  portfolio_insertMany(data: [
+    {
+      id: "994c2844-26dd-8518-eb5a-88aabb884444",
+      ownerId: "661f9511-f3ac-52e5-b827-557766551111",
+      createdAt: "2024-04-30T12:00:00Z",
+      description: "John's portfolio",
+      isPublic: true,
+      name: "John Smith's Portfolio"
+    }
+  ])
+  portfolioPhoto_insertMany(data: [
+    {
+      portfolioId: "994c2844-26dd-8518-eb5a-88aabb884444",
+      photoId: "772a0622-04bb-63f6-c938-668877662222",
+      position: 1
+    },
+    {
+      portfolioId: "994c2844-26dd-8518-eb5a-88aabb884444",
+      photoId: "883b1733-15cc-7407-da49-779988773333",
+      position: 2
+    }
+  ])
+  compositeCard_insertMany(data: [
+    {
+      id: "aa5d3955-37ee-9629-fc6b-99bbcc995555",
+      ownerId: "550e8400-e29b-41d4-a716-446655440000",
+      createdAt: "2024-04-30T13:00:00Z",
+      description: "Jane's comp card",
+      isPublic: true,
+      layoutType: "Standard",
+      name: "Jane Doe's Comp Card"
+    }
+  ])
+  compositeCardPhoto_insertMany(data: [
+    {
+      compositeCardId: "aa5d3955-37ee-9629-fc6b-99bbcc995555",
+      photoId: "772a0622-04bb-63f6-c938-668877662222",
+      position: 1
+    },
+    {
+      compositeCardId: "aa5d3955-37ee-9629-fc6b-99bbcc995555",
+      photoId: "883b1733-15cc-7407-da49-779988773333",
+      position: 2
+    }
+  ])
+}
