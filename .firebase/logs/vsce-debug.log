@@ -1029,3 +1029,71 @@ Generated sources: index.cjs.js [6470B] package.json [632B] index.d.ts [15140B] 
  {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:04:55.579850   19185 installsdk.go:55] Package @dataconnect/admin-generated is already installed. Skipping installation\n"}}
 [debug] [2026-01-11T01:04:55.580Z] I0110 19:04:55.579865   19185 load.go:109] Finished reloading
  {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:04:55.579865   19185 load.go:109] Finished reloading\n"}}
+[info] [Firebase Plugin] Stopping Data Connect toolkit
+[debug] [2026-01-11T01:39:31.542Z] [Firebase Plugin] Activating Firebase extension.
+[info] [Firebase Plugin] Checked firebase-tools, is up to date!
+[debug] [2026-01-11T01:39:34.521Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-01-11T01:39:34.522Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-11T01:39:34.522Z] > authorizing via signed-in user (jlist845@gmail.com)
+[debug] [2026-01-11T01:39:34.523Z] Checked if tokens are valid: false, expires at: 1768096126228
+[debug] [2026-01-11T01:39:34.524Z] Checked if tokens are valid: false, expires at: 1768096126228
+[debug] [2026-01-11T01:39:34.524Z] > refreshing access token with scopes: []
+[debug] [2026-01-11T01:39:34.524Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-01-11T01:39:34.525Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-01-11T01:39:34.528Z] [Firebase Plugin] VSCode notification server listening on port 40001
+[info] [Firebase Plugin] Starting Data Connect toolkit (version 3.0.0) on port 50001
+[info] i  dataconnect: downloading dataconnect-emulator-3.0.0... {"metadata":{"emulator":{"name":"dataconnect"},"message":"downloading dataconnect-emulator-3.0.0..."}}
+[debug] [2026-01-11T01:39:34.710Z] >>> [apiv2][query] GET https://storage.googleapis.com/firemat-preview-drop/emulator/dataconnect-emulator-macos-arm64-v3.0.0 
+[debug] [2026-01-11T01:39:34.833Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-01-11T01:39:34.833Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-01-11T01:39:34.852Z] [Firebase Plugin] User found:  jlist845@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-01-11T01:39:34.853Z] Checked if tokens are valid: true, expires at: 1768099173833
+[debug] [2026-01-11T01:39:34.856Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-01-11T01:39:34.965Z] <<< [apiv2][status] GET https://storage.googleapis.com/firemat-preview-drop/emulator/dataconnect-emulator-macos-arm64-v3.0.0 200
+[debug] [2026-01-11T01:39:34.965Z] <<< [apiv2][body] GET https://storage.googleapis.com/firemat-preview-drop/emulator/dataconnect-emulator-macos-arm64-v3.0.0 [stream]
+[debug] [2026-01-11T01:39:35.223Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-01-11T01:39:35.223Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] i  dataconnect: Removing outdated emulator files: dataconnect-emulator-3.0.1 {"metadata":{"emulator":{"name":"dataconnect"},"message":"Removing outdated emulator files: dataconnect-emulator-3.0.1"}}
+[debug] [2026-01-11T01:39:36.923Z] I0110 19:39:36.908316   51627 control.go:94] [/emulator/posepoiseg3 0ae0] UpdateResources(): done
+Main schema: sources: schema/schema.gql [1225B] 
+Connector "example": sources: example/queries.gql [4190B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:36.908316   51627 control.go:94] [/emulator/posepoiseg3 0ae0] UpdateResources(): done\nMain schema: sources: schema/schema.gql [1225B] \nConnector \"example\": sources: example/queries.gql [4190B] \n"}}
+[debug] [2026-01-11T01:39:36.923Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-01-11T01:39:36.924Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-01-11T01:39:36.924Z] Starting Data Connect Emulator with command {"binary":"/Users/johnlister/.cache/firebase/emulators/dataconnect-emulator-3.0.0","args":["--logtostderr","-v=2","dev","--listen=localhost:50001","--config_dir=/Users/johnlister/Documents/Projects/pose_poise_g3/dataconnect","--enable_output_schema_extensions=true","--enable_output_generated_sdk=true"],"optionalArgs":["listen","config_dir","enable_output_schema_extensions","enable_output_generated_sdk"],"joinArgs":true,"shell":false,"port":9399} {"metadata":{"emulator":{"name":"dataconnect"},"message":"Starting Data Connect Emulator with command {\"binary\":\"/Users/johnlister/.cache/firebase/emulators/dataconnect-emulator-3.0.0\",\"args\":[\"--logtostderr\",\"-v=2\",\"dev\",\"--listen=localhost:50001\",\"--config_dir=/Users/johnlister/Documents/Projects/pose_poise_g3/dataconnect\",\"--enable_output_schema_extensions=true\",\"--enable_output_generated_sdk=true\"],\"optionalArgs\":[\"listen\",\"config_dir\",\"enable_output_schema_extensions\",\"enable_output_generated_sdk\"],\"joinArgs\":true,\"shell\":false,\"port\":9399}"}}
+[info] i  dataconnect: Data Connect Emulator logging to dataconnect-debug.log {"metadata":{"emulator":{"name":"dataconnect"},"message":"Data Connect Emulator logging to dataconnect-debug.log"}}
+[debug] [2026-01-11T01:39:36.999Z] I0110 19:39:36.940919   51647 load.go:31] Reloading schema and connectors...
+I0110 19:39:36.972718   51647 control.go:94] [/emulator/posepoiseg3 8401] UpdateResources(): done
+Main schema: sources: schema/schema.gql [1225B] 
+Connector "example": sources: example/queries.gql [4190B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:36.940919   51647 load.go:31] Reloading schema and connectors...\nI0110 19:39:36.972718   51647 control.go:94] [/emulator/posepoiseg3 8401] UpdateResources(): done\nMain schema: sources: schema/schema.gql [1225B] \nConnector \"example\": sources: example/queries.gql [4190B] \n"}}
+[debug] [2026-01-11T01:39:37.008Z] I0110 19:39:37.007738   51647 codegen.go:80] [connector "example" javascriptSdk] Generating sources into "/Users/johnlister/Documents/Projects/pose_poise_g3/src/dataconnect-generated"
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.007738   51647 codegen.go:80] [connector \"example\" javascriptSdk] Generating sources into \"/Users/johnlister/Documents/Projects/pose_poise_g3/src/dataconnect-generated\"\n"}}
+[debug] [2026-01-11T01:39:37.021Z] I0110 19:39:37.021373   51647 codegen.go:80] [connector "example" adminSdk] Generating sources into "/Users/johnlister/Documents/Projects/pose_poise_g3/src/dataconnect-admin-generated"
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.021373   51647 codegen.go:80] [connector \"example\" adminSdk] Generating sources into \"/Users/johnlister/Documents/Projects/pose_poise_g3/src/dataconnect-admin-generated\"\n"}}
+[debug] [2026-01-11T01:39:37.023Z] I0110 19:39:37.022997   51647 codegen.go:80] [connector "example" adminSdk] Generating sources into "/Users/johnlister/Documents/Projects/pose_poise_g3/functions/src/dataconnect-admin-generated"
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.022997   51647 codegen.go:80] [connector \"example\" adminSdk] Generating sources into \"/Users/johnlister/Documents/Projects/pose_poise_g3/functions/src/dataconnect-admin-generated\"\n"}}
+[debug] [2026-01-11T01:39:37.029Z] I0110 19:39:37.028974   51647 collector.go:107] schema extensions wrote into "/Users/johnlister/Documents/Projects/pose_poise_g3/dataconnect/.dataconnect/schema"
+Generated sources: main/mutation.gql [23171B] main/implicit.gql [2530B] prelude.gql [73219B] main/input.gql [63594B] main/relation.gql [30737B] main/query.gql [8542B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.028974   51647 collector.go:107] schema extensions wrote into \"/Users/johnlister/Documents/Projects/pose_poise_g3/dataconnect/.dataconnect/schema\"\nGenerated sources: main/mutation.gql [23171B] main/implicit.gql [2530B] prelude.gql [73219B] main/input.gql [63594B] main/relation.gql [30737B] main/query.gql [8542B] \n"}}
+[debug] [2026-01-11T01:39:37.033Z] I0110 19:39:37.033470   51647 collector.go:107] connector "example" javascriptSdk wrote into "/Users/johnlister/Documents/Projects/pose_poise_g3/src/dataconnect-generated"
+Generated sources: react/package.json [460B] react/esm/index.esm.js [6320B] .guides/config.json [236B] esm/index.esm.js [7164B] index.cjs.js [8153B] react/esm/package.json [17B] package.json [863B] .guides/setup.md [1682B] index.d.ts [16682B] react/index.d.ts [8222B] react/index.cjs.js [6667B] react/README.md [88375B] .guides/usage.md [4188B] esm/package.json [17B] README.md [81714B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.033470   51647 collector.go:107] connector \"example\" javascriptSdk wrote into \"/Users/johnlister/Documents/Projects/pose_poise_g3/src/dataconnect-generated\"\nGenerated sources: react/package.json [460B] react/esm/index.esm.js [6320B] .guides/config.json [236B] esm/index.esm.js [7164B] index.cjs.js [8153B] react/esm/package.json [17B] package.json [863B] .guides/setup.md [1682B] index.d.ts [16682B] react/index.d.ts [8222B] react/index.cjs.js [6667B] react/README.md [88375B] .guides/usage.md [4188B] esm/package.json [17B] README.md [81714B] \n"}}
+[debug] [2026-01-11T01:39:37.035Z] I0110 19:39:37.035720   51647 installsdk.go:55] Package @dataconnect/generated is already installed. Skipping installation
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.035720   51647 installsdk.go:55] Package @dataconnect/generated is already installed. Skipping installation\n"}}
+[debug] [2026-01-11T01:39:37.037Z] I0110 19:39:37.037395   51647 collector.go:107] connector "example" adminSdk wrote into "/Users/johnlister/Documents/Projects/pose_poise_g3/src/dataconnect-admin-generated"
+Generated sources: index.d.ts [15140B] esm/index.esm.js [5887B] esm/package.json [17B] index.cjs.js [6470B] package.json [632B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.037395   51647 collector.go:107] connector \"example\" adminSdk wrote into \"/Users/johnlister/Documents/Projects/pose_poise_g3/src/dataconnect-admin-generated\"\nGenerated sources: index.d.ts [15140B] esm/index.esm.js [5887B] esm/package.json [17B] index.cjs.js [6470B] package.json [632B] \n"}}
+[debug] [2026-01-11T01:39:37.038Z] I0110 19:39:37.038738   51647 installsdk.go:55] Package @dataconnect/admin-generated is already installed. Skipping installation
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.038738   51647 installsdk.go:55] Package @dataconnect/admin-generated is already installed. Skipping installation\n"}}
+[debug] [2026-01-11T01:39:37.040Z] I0110 19:39:37.040055   51647 collector.go:107] connector "example" adminSdk wrote into "/Users/johnlister/Documents/Projects/pose_poise_g3/functions/src/dataconnect-admin-generated"
+Generated sources: index.d.ts [15140B] esm/index.esm.js [5887B] esm/package.json [17B] index.cjs.js [6470B] package.json [632B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.040055   51647 collector.go:107] connector \"example\" adminSdk wrote into \"/Users/johnlister/Documents/Projects/pose_poise_g3/functions/src/dataconnect-admin-generated\"\nGenerated sources: index.d.ts [15140B] esm/index.esm.js [5887B] esm/package.json [17B] index.cjs.js [6470B] package.json [632B] \n"}}
+[debug] [2026-01-11T01:39:37.042Z] I0110 19:39:37.041646   51647 installsdk.go:55] Package @dataconnect/admin-generated is already installed. Skipping installation
+I0110 19:39:37.041933   51647 load.go:109] Finished reloading
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.041646   51647 installsdk.go:55] Package @dataconnect/admin-generated is already installed. Skipping installation\nI0110 19:39:37.041933   51647 load.go:109] Finished reloading\n"}}
+[debug] [2026-01-11T01:39:37.045Z] I0110 19:39:37.045068   51647 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.045068   51647 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
+[debug] [2026-01-11T01:39:37.277Z] I0110 19:39:37.277614   51647 engine.go:179] [/emulator/posepoiseg3 8401] ExecuteGraphqlRead IntrospectionQuery: succeeded. 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0110 19:39:37.277614   51647 engine.go:179] [/emulator/posepoiseg3 8401] ExecuteGraphqlRead IntrospectionQuery: succeeded. \n"}}
